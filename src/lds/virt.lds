@@ -18,7 +18,10 @@ organize memory by section
 */
 SECTIONS
 {
-    /* */
+    /*
+        idk if its just me, but when linking with rust lld risc v expects
+        these metadata sections that don't have to be loaded into memory
+    */
     .riscv.attributes 0 : { *(.riscv.attributes) }
     .rela.dyn 0 : { *(.rela.dyn) }
     .rela.plt 0 : { *(.rela.plt) }
