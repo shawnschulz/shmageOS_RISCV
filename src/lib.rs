@@ -1,6 +1,8 @@
 #![no_std]
 #![feature(panic_info_message)]
 
+pub mod uart;
+
 #[macro_export]
 macro_rules! print {
     ($($args:tt)+) => ({});
@@ -24,6 +26,22 @@ pub fn panic(info: &core::panic::PanicInfo) -> ! {
         println!("Failed to find information about panic!")
     }
     abort();
+}
+
+// Given an mmio address and offest, write the 8 bit value at that address (input)
+pub fn mmio_write(address: usize, offset: usize, value: u8) {
+    let reg = address as *mut u8;
+    unsafe {
+    reg.add(offset).write_volatile(value);
+    }
+}
+
+// Given an mmio address and offest, get the 8 bit value at that address (output)
+pub fn mmio_read(address: usize, offset: usize) -> u8 {
+    let reg = address as *mut u8;
+    unsafe {
+    return reg.add(offset).read_volatile()
+    }
 }
 
 #[unsafe(no_mangle)]
