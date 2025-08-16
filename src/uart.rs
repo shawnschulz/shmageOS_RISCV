@@ -66,4 +66,10 @@ impl Uart {
 }
 
 impl Write for Uart {
+    fn write_str(&mut self, s: &str) -> Result<(), Error> {
+        for c in s.bytes() {
+            self.put(c);
+        }
+        Ok(())
+    }
 }
