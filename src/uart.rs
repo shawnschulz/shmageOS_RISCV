@@ -4,6 +4,7 @@ pub fn set_word_length() {}
 pub fn enable_fifo() {}
 pub fn enable_receiver_interrupts() {}
 use core::fmt::{Write, Error};
+use core::convert::TryInto;
 
 pub struct Uart {
     base_address: usize,

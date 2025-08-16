@@ -1,7 +1,8 @@
-# asm trap handler
+# trap.S
+# In the future our trap vector will go here.
 
-.section .text
 .global asm_trap_vector
+# This will be our trap vector when we start
+# handling interrupts.
 asm_trap_vector:
-    /* if the cpu gets interrupted for any reason, we enter here (and therefore jump back to our rust code) */
-    mret
+	mret
