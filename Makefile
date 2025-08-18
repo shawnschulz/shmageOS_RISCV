@@ -28,8 +28,10 @@ DRIVE=hdd.dsk
 
 # The problem: i think -lsos is supposed to link to some static libirary file with the symbol name for
 # kernel_main, but idk this isn't in there
+# do we even need the hdd.dsk?
+# -drive if=none,format=raw,file=$(DRIVE),id=foo
 all:
-	cargo build --target riscv64gc-unknown-none-elf
+	cargo build 
 	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
 run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT)
