@@ -37,6 +37,8 @@ run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT)
 create_boot_image:
 	echo "TODO: make it so you can link to a bootloader"
+serial_console:
+	sudo screen /dev/ttyACM0
 
 
 .PHONY: clean

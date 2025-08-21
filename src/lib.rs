@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(panic_info_message)]
 
 pub mod uart;
 
@@ -93,6 +92,30 @@ pub extern "C" fn kernel_main() {
     // I think the tutorial makes UartDriver a singleton, perhaps will do that later
     let mut uart_instance = uart::Uart::new(0x1000_0000);
     uart_instance.init();
-    println!("Welcome to shmageOS!");
-    println!("Hopefully you are seeing this");
+    shfetch();
+    // single character input process loop
+    loop {
+        // Get the character
+        if let Some(c) = uart_instance.get() {
+            match c {
+                8 => {
+                    // 8 is the backspace character, need to replace the
+                    // previous character with a ' '
+                    print!("{}{}{}", 8 as char, ' ', 8 as char);
+                },
+                10 | 13 => {
+                    // carriage returns
+                    println!();
+                },
+                _ => {
+                    print!("{}", c as char);
+                }
+            }
+        }
+    }
+// Use this later to poll the serial device
+//    loop {
+//        println!("shmageOS is polling the serial device...");
+//        for _ in 1..1000000 {}
+//    }
 }
