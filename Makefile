@@ -38,7 +38,7 @@ run: all
 create_boot_image:
 	echo "TODO: make it so you can link to a bootloader"
 serial_console:
-	sudo screen /dev/ttyACM0
+	sudo minicom -D /dev/ttyUSB0
 
 
 .PHONY: clean

@@ -1,76 +1,5 @@
-#![no_std]
 
-pub mod uart;
-// pub mod page;
-pub mod linear_allocator;
-pub mod shmage;
-
-
-
-
-#[macro_export]
-macro_rules! print {
-    ($($args:tt)+) => ({
-        use core::fmt::Write;
-        // it's macro magic, but basically the stuff in a print will
-        // get put into a write! call in the Uart's write method
-        let _ = write!(crate::uart::Uart::new(0x1000_0000), $($args)+);
-    });
-}
-#[macro_export]
-macro_rules! println {
-    () => ({
-		print!("\n")
-	});
-	($fmt:expr) => ({
-		print!(concat!($fmt, "\n"))
-	});
-	($fmt:expr, $($args:tt)+) => ({
-		print!(concat!($fmt, "\n"), $($args)+)
-	});
-}
-
-// replacing the eh_personality C function name
-#[unsafe(no_mangle)]
-pub extern "C" fn eh_personality() {}
-
-#[panic_handler]
-pub fn panic(info: &core::panic::PanicInfo) -> ! {
-    print!("[ERROR] program paniced | stack trace:");
-    if let Some(p) = info.location() {
-        println!("line {}, file {}: {}", p.line(), p.file(), info.message());
-    }
-    else {
-        println!("Failed to find information about panic!")
-    }
-    abort();
-}
-
-// Given an mmio address and offest, write the 8 bit value at that address(input)
-pub fn mmio_write(address: usize, offset: usize, value: u8) {
-    let reg = address as *mut u8;
-    unsafe {
-    reg.add(offset).write_volatile(value);
-    }
-}
-
-// Given an mmio address and offest, get the 8 bit value at that address (output)
-pub fn mmio_read(address: usize, offset: usize) -> u8 {
-    let reg = address as *mut u8;
-    unsafe {
-    return reg.add(offset).read_volatile()
-    }
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn abort() -> !{
-    loop {
-        // process waits for some interrupt indefinitely on abort
-        use core::arch::asm;
-        unsafe {asm!("wfi")};
-    }
-}
-
+// This is our basic shell
 pub fn shfetch() {
     println!("Welcome to shmageOS!");
     println!("           _              user@wip");
@@ -93,13 +22,32 @@ pub fn shfetch() {
     println!("");
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn kernel_main() {
-    // I think the tutorial makes UartDriver a singleton, perhaps will do that later
+#[global_allocator]
+static mut KERNEL_HEAP_ALLOCATOR: LinearAllocator = LinearAllocator::empty();
+static mut KERNEL_HEAP: [u8; 0x20000] = [0; 0x20000];
+pub unsafe fn init_kernel_heap() {
+    let heap_start = KERNEL_HEAP.as_ptr() as usize;
+    let heap_size = KERNEL_HEAP.len();
+    KERNEL_HEAP_ALLOCATOR.init(heap_start, heap_size);
+}
+
+use crate::println;
+use crate::uart::Uart;
+// Initializes the process loop and uses arena allocaiton to allocate
+// a heap
+pub fn shmage_init() -> ! {
     let mut uart_instance = uart::Uart::new(0x1000_0000);
     uart_instance.init();
+    unsafe {
+        init_kernel_heap();
+    }
     shfetch();
     // single character input process loop
+    let mut v = Vec::new();
+    v.push(1);
+    v.push(2);
+    v.push(3);
+    println!("{:?}", v);
     loop {
         // Get the character
         if let Some(c) = uart_instance.get() {
@@ -131,23 +79,17 @@ pub extern "C" fn kernel_main() {
                                     'D' => {
                                         println!("left arrow press");
                                     },
-                                    _ => {
+
                                         println!("idk what happened");
                                     }
                                 }
                             }
                         }
                     }
+                    _ => {
+                        print!("{}", c as char);
                 },
-                _ => {
-                    print!("{}", c as char);
                 }
             }
         }
     }
-// Use this later to poll the serial device
-//    loop {
-//        println!("shmageOS is polling the serial device...");
-//        for _ in 1..1000000 {}
-//    }
-}
