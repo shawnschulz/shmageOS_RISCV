@@ -1,4 +1,3 @@
-
 // This is our basic shell
 pub fn shfetch() {
     println!("Welcome to shmageOS!");
@@ -22,32 +21,18 @@ pub fn shfetch() {
     println!("");
 }
 
-#[global_allocator]
-static mut KERNEL_HEAP_ALLOCATOR: LinearAllocator = LinearAllocator::empty();
-static mut KERNEL_HEAP: [u8; 0x20000] = [0; 0x20000];
-pub unsafe fn init_kernel_heap() {
-    let heap_start = KERNEL_HEAP.as_ptr() as usize;
-    let heap_size = KERNEL_HEAP.len();
-    KERNEL_HEAP_ALLOCATOR.init(heap_start, heap_size);
-}
 
 use crate::println;
 use crate::uart::Uart;
+use crate::print;
+
 // Initializes the process loop and uses arena allocaiton to allocate
 // a heap
 pub fn shmage_init() -> ! {
-    let mut uart_instance = uart::Uart::new(0x1000_0000);
+    let mut uart_instance = Uart::new(0x1000_0000);
     uart_instance.init();
-    unsafe {
-        init_kernel_heap();
-    }
     shfetch();
     // single character input process loop
-    let mut v = Vec::new();
-    v.push(1);
-    v.push(2);
-    v.push(3);
-    println!("{:?}", v);
     loop {
         // Get the character
         if let Some(c) = uart_instance.get() {
@@ -67,20 +52,22 @@ pub fn shmage_init() -> ! {
                         if next_byte == 91 {
                             if let Some(b) = uart_instance.get() {
                                 match b as char {
-                                    'A' => {
-                                        println!("up arrow press");
-                                    },
-                                    'B' => {
-                                        println!("down arrow press");
-                                    },
-                                    'C' => {
-                                        println!("right arrow press");
-                                    },
-                                    'D' => {
-                                        println!("left arrow press");
-                                    },
+                                        'A' => {
+                                            println!("up arrow press");
+                                        },
+                                        'B' => {
+                                            println!("down arrow press");
+                                        },
+                                        'C' => {
+                                            println!("right arrow press");
+                                        },
+                                        'D' => {
+                                            println!("left arrow press");
+                                        },
+                                        _ => {
 
-                                        println!("idk what happened");
+                                            println!("idk what happened");
+                                        }
                                     }
                                 }
                             }

@@ -4,6 +4,7 @@ pub mod uart;
 // pub mod page;
 pub mod linear_allocator;
 pub mod shmage;
+pub mod page;
 
 
 
@@ -99,6 +100,9 @@ pub extern "C" fn kernel_main() {
     let mut uart_instance = uart::Uart::new(0x1000_0000);
     uart_instance.init();
     shfetch();
+    page::init();
+    page::print_alloc_start();
+    page::print_page_allocations();
     // single character input process loop
     loop {
         // Get the character
@@ -150,4 +154,11 @@ pub extern "C" fn kernel_main() {
 //        println!("shmageOS is polling the serial device...");
 //        for _ in 1..1000000 {}
 //    }
+}
+
+#[cfg(test)]
+#[unsafe(no_mangle)]
+pub extern "C" fn _start() -> ! {
+    test_main();
+    loop {}
 }
