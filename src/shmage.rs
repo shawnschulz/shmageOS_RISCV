@@ -20,6 +20,34 @@ pub fn shfetch() {
     println!("_______________________");
     println!("");
 }
+use crate::page;
+
+pub fn ptable() {
+    page::print_page_allocations();
+}
+
+pub fn basic_command_process (input_array: &[char; 8]) {
+    let shfetch_arr: [char; 7] = ['s', 'h', 'f', 'e', 't', 'c', 'h'];
+    let mut shfetch_command: bool = true;
+    for i in 0..6 {
+        if input_array[i] != shfetch_arr[i] {
+            shfetch_command = false;
+        }
+    }
+    if shfetch_command {
+        shfetch();
+    }
+    let ptable_arr: [char; 6] = ['p', 't', 'a', 'b', 'l', 'e'];
+    let mut ptable_command: bool = true;
+    for i in 0..5 {
+        if input_array[i] != ptable_arr[i] {
+            ptable_command = false;
+        }
+    }
+    if ptable_command {
+        ptable();
+    }
+}
 
 
 use crate::println;
@@ -32,7 +60,9 @@ pub fn shmage_init() -> ! {
     let mut uart_instance = Uart::new(0x1000_0000);
     uart_instance.init();
     shfetch();
+    let mut input_array: [char; 8] = [' ',' ',' ',' ',' ',' ',' ',' '];
     // single character input process loop
+    let mut input_i: usize = 0;
     loop {
         // Get the character
         if let Some(c) = uart_instance.get() {
@@ -45,6 +75,9 @@ pub fn shmage_init() -> ! {
                 10 | 13 => {
                     // carriage returns
                     println!();
+                    basic_command_process(&input_array);
+                    input_array = [' ',' ',' ',' ',' ',' ',' ',' '];
+                    input_i = 0;
                 },
                 0x1b => {
                     //ANSI escape sequences
@@ -75,6 +108,10 @@ pub fn shmage_init() -> ! {
                     }
                     _ => {
                         print!("{}", c as char);
+                        if input_i < 7 {
+                            input_array[input_i] = c as char;
+                            input_i += 1;
+                        }
                 },
                 }
             }

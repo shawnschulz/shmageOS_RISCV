@@ -1,9 +1,10 @@
 use core::{mem::size_of, ptr::null_mut};
 use crate::{println, print};
 
+// i think we have to define this ourselves???
 unsafe extern "C" {
-    static _heap_start: usize;
-    static _heap_size: usize;
+    static HEAP_START: usize;
+    static HEAP_SIZE: usize;
 }
 
 static mut ALLOC_START: usize = 0;
@@ -65,8 +66,8 @@ pub fn alloc(pages: usize) -> *mut u8 {
     assert!(pages > 0);
     unsafe {
         // create the page structure
-        let num_pages = _heap_size / PAGE_SIZE;
-        let pointer = _heap_start as *mut Page;
+        let num_pages = HEAP_SIZE / PAGE_SIZE;
+        let pointer = HEAP_START as *mut Page;
         // dfs through the pages
         for i in 0..num_pages-pages {
             // look for a free page
@@ -109,9 +110,9 @@ pub fn dealloc(pointer: *mut u8) {
     assert!(!pointer.is_null());
     unsafe {
         // grab the address of the first page
-        let address = _heap_start + (pointer as usize - ALLOC_START) / PAGE_SIZE;
+        let address = HEAP_START + (pointer as usize - ALLOC_START) / PAGE_SIZE;
         // check that page structure makes sense
-        assert!(address >= _heap_start && address < _heap_start + _heap_size);
+        assert!(address >= HEAP_START && address < HEAP_START + HEAP_SIZE);
         let mut page_instance = address as *mut Page;
         // Loop through the pages and clear them until we hit the last page
         while (*page_instance).is_taken() && !(*page_instance).is_last() {
@@ -149,22 +150,22 @@ pub fn zalloc(pages: usize) -> *mut u8 {
 
 pub fn init() {
     unsafe {
-        let num_pages = _heap_size / PAGE_SIZE;
-        let pointer = _heap_start as *mut Page;
+        let num_pages = HEAP_SIZE / PAGE_SIZE;
+        let pointer = HEAP_START as *mut Page;
         // clear all pages
         for i in 0..num_pages {
             (*pointer.add(i)).clear();
         }
         // align  alloc start to the page boundry
-        ALLOC_START = align_val(_heap_start + num_pages * size_of::<Page,>(), PAGE_ORDER);
+        ALLOC_START = align_val(HEAP_START + num_pages * size_of::<Page,>(), PAGE_ORDER);
     }
 }
 
 pub fn print_alloc_start() {
     unsafe {
-        let starting_page = _heap_start as *const Page;
+        let starting_page = HEAP_START as *const Page;
         let alloc_beginning = ALLOC_START;
-        println!("pointer to starting page: 0x{:p}", starting_page);
+        println!("pointer to starting page: {:p}", starting_page);
         println!("pointer to physical starting memory address: 0x{:x}", alloc_beginning);
     }
 }
@@ -172,24 +173,26 @@ pub fn print_alloc_start() {
 
 pub fn print_page_allocations() {
 	unsafe {
-		let num_pages = _heap_size / PAGE_SIZE;
-		let mut beg = _heap_start as *const Page;
+		let num_pages = HEAP_SIZE / PAGE_SIZE;
+		let mut beg = HEAP_START as *const Page;
 		let end = beg.add(num_pages);
 		let alloc_beg = ALLOC_START;
 		let alloc_end = ALLOC_START + num_pages * PAGE_SIZE;
 		println!();
+		println!(" ______________________________________");
+        print!("|");
 		println!(
-		         "PAGE ALLOCATION TABLE\nMETA: {:p} -> {:p}\nPHYS: \
-		          0x{:x} -> 0x{:x}",
+		         "page allocation table                 |\n|meta: {:p} -> {:p}        |\n|physical mem: \
+		          0x{:x} -> 0x{:x}|",
 		         beg, end, alloc_beg, alloc_end
 		);
-		println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		println!(" --------------------------------------");
 		let mut num = 0;
 		while beg < end {
 			if (*beg).is_taken() {
 				let start = beg as usize;
 				let memaddr = ALLOC_START
-				              + (start - _heap_start)
+				              + (start - HEAP_START)
 				                * PAGE_SIZE;
 				print!("0x{:x} => ", memaddr);
 				loop {
@@ -198,7 +201,7 @@ pub fn print_page_allocations() {
 						let end = beg as usize;
 						let memaddr = ALLOC_START
 						              + (end
-						                 - _heap_start)
+						                 - HEAP_START)
 						                * PAGE_SIZE
 						              + PAGE_SIZE - 1;
 						print!(
@@ -214,17 +217,17 @@ pub fn print_page_allocations() {
 			}
 			beg = beg.add(1);
 		}
-		println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		println!(" ________________________________________");
 		println!(
-		         "Allocated: {:>5} pages ({:>9} bytes).",
+		         "|allocated: {:>5} pages ({:>9} bytes)|",
 		         num,
 		         num * PAGE_SIZE
 		);
 		println!(
-		         "Free     : {:>5} pages ({:>9} bytes).",
+		         "|free     : {:>5} pages ({:>9} bytes)|",
 		         num_pages - num,
 		         (num_pages - num) * PAGE_SIZE
 		);
-		println!();
+		println!(" ----------------------------------------");
 	}
 }

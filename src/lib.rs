@@ -100,55 +100,56 @@ pub extern "C" fn kernel_main() {
     let mut uart_instance = uart::Uart::new(0x1000_0000);
     uart_instance.init();
     shfetch();
-    page::init();
-    page::print_alloc_start();
-    page::print_page_allocations();
-    // single character input process loop
-    loop {
-        // Get the character
-        if let Some(c) = uart_instance.get() {
-            match c {
-                8 => {
-                    // 8 is the backspace character, need to replace the
-                    // previous character with a ' '
-                    print!("{}{}{}", 8 as char, ' ', 8 as char);
-                },
-                10 | 13 => {
-                    // carriage returns
-                    println!();
-                },
-                0x1b => {
-                    //ANSI escape sequences
-                    if let Some(next_byte) = uart_instance.get() {
-                        if next_byte == 91 {
-                            if let Some(b) = uart_instance.get() {
-                                match b as char {
-                                    'A' => {
-                                        println!("up arrow press");
-                                    },
-                                    'B' => {
-                                        println!("down arrow press");
-                                    },
-                                    'C' => {
-                                        println!("right arrow press");
-                                    },
-                                    'D' => {
-                                        println!("left arrow press");
-                                    },
-                                    _ => {
-                                        println!("idk what happened");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                _ => {
-                    print!("{}", c as char);
-                }
-            }
-        }
-    }
+    shmage::shmage_init();
+//    page::print_alloc_start();
+//    page::init();
+//    page::print_page_allocations();
+//    // single character input process loop
+//    loop {
+//        // Get the character
+//        if let Some(c) = uart_instance.get() {
+//            match c {
+//                8 => {
+//                    // 8 is the backspace character, need to replace the
+//                    // previous character with a ' '
+//                    print!("{}{}{}", 8 as char, ' ', 8 as char);
+//                },
+//                10 | 13 => {
+//                    // carriage returns
+//                    println!();
+//                },
+//                0x1b => {
+//                    //ANSI escape sequences
+//                    if let Some(next_byte) = uart_instance.get() {
+//                        if next_byte == 91 {
+//                            if let Some(b) = uart_instance.get() {
+//                                match b as char {
+//                                    'A' => {
+//                                        println!("up arrow press");
+//                                    },
+//                                    'B' => {
+//                                        println!("down arrow press");
+//                                    },
+//                                    'C' => {
+//                                        println!("right arrow press");
+//                                    },
+//                                    'D' => {
+//                                        println!("left arrow press");
+//                                    },
+//                                    _ => {
+//                                        println!("idk what happened");
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                },
+//                _ => {
+//                    print!("{}", c as char);
+//                }
+//            }
+//        }
+//    }
 // Use this later to poll the serial device
 //    loop {
 //        println!("shmageOS is polling the serial device...");
