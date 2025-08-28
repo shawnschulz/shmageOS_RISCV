@@ -97,64 +97,7 @@ pub fn shfetch() {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() {
-    // I think the tutorial makes UartDriver a singleton, perhaps will do that later
-    // let mut uart_instance = uart::Uart::new(0x1000_0000);
-    // uart_instance.init();
-    // entry point into a stack allocated kernel shell
     shmage::shmage_init();
-
-//    page::print_alloc_start();
-//    page::init();
-//    page::print_page_allocations();
-//    // single character input process loop
-//    loop {
-//        // Get the character
-//        if let Some(c) = uart_instance.get() {
-//            match c {
-//                8 => {
-//                    // 8 is the backspace character, need to replace the
-//                    // previous character with a ' '
-//                    print!("{}{}{}", 8 as char, ' ', 8 as char);
-//                },
-//                10 | 13 => {
-//                    // carriage returns
-//                    println!();
-//                },
-//                0x1b => {
-//                    //ANSI escape sequences
-//                    if let Some(next_byte) = uart_instance.get() {
-//                        if next_byte == 91 {
-//                            if let Some(b) = uart_instance.get() {
-//                                match b as char {
-//                                    'A' => {
-//                                        println!("up arrow press");
-//                                    },
-//                                    'B' => {
-//                                        println!("down arrow press");
-//                                    },
-//                                    'C' => {
-//                                        println!("right arrow press");
-//                                    },
-//                                    'D' => {
-//                                        println!("left arrow press");
-//                                    },
-//                                    _ => {
-//                                        println!("idk what happened");
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                },
-//                _ => {
-//                    print!("{}", c as char);
-//        }
-//    }
-// Use this later to poll the serial device
-//    loop {
-//        println!("shmageOS is polling the serial device...");
-//        for _ in 1..1000000 {}
-//    }
 }
 
 // This is no bueno testing, but its been a nightmare to get the custom unit testing framework
@@ -186,6 +129,10 @@ pub fn test_alloc() {
     println!("[ok]");
 ;
 }
+
+/// Eventually want to randomly generate some keyboard inputs and
+/// see if the uart console can handle the inputs properly
+pub fn test_fuzzed_uart_inputs() {}
 
 pub fn test() {
     test_pages();

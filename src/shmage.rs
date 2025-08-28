@@ -104,7 +104,7 @@ pub fn shmage_init() -> ! {
     let mut prompt_active: bool = true;
     loop {
         if prompt_active {
-            print!("(-_-) — ˎˊ˗");
+            print!("t(-_-) — ˎˊ˗");
             prompt_active = false;
         }
         // Get the character
