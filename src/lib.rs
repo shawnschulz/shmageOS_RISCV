@@ -168,12 +168,22 @@ pub fn test_pages() {
 }
 
 pub fn test_alloc() {
+    println!("initializing...");
+    page::init();
+    println!("[ok]");
     println!("allocating some pages");
+    let page = page::zalloc(1);
+    let mut alloc_start: *mut u8;
+    alloc_start = page::alloc(1);
     for i in (1..32704).step_by(1000) {
-        let _alloc_start = page::alloc(1000);
+        alloc_start = page::alloc(1000);
     }
     page::print_page_allocations();
-    println!("[ok]")
+    println!("[ok]");
+    println!("deallocating all the pages (i think)");
+    page::deallocate_all_pages();
+    page::print_page_allocations();
+    println!("[ok]");
 ;
 }
 

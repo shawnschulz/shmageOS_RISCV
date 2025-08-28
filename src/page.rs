@@ -69,6 +69,7 @@ impl Page {
     }
 }
 
+/// Pages at virtual addresses, without zeroing the start pointer
 pub fn alloc(pages: usize) -> *mut u8 {
     // Pages must be contiguous
     assert!(pages > 0);
@@ -113,6 +114,7 @@ pub fn alloc(pages: usize) -> *mut u8 {
     null_mut()
 }
 
+/// Deallocate the page at the virt address
 /// note deallocating doesn't actually clear the memory, just the descriptor
 pub fn dealloc(pointer: *mut u8) {
     assert!(!pointer.is_null());
@@ -135,7 +137,7 @@ pub fn dealloc(pointer: *mut u8) {
     }
 }
 
-/// Allocate and zero one more or pages
+/// Allocate and zero one more or pages at virtual addresses, zeroing the start pointer
 pub fn zalloc(pages: usize) -> *mut u8 {
     let ret = alloc(pages);
     // If the ALLOC_START pointer is not null, need to zero it
@@ -254,6 +256,40 @@ pub fn print_alloc_start() {
         let alloc_beginning = ALLOC_START;
         println!("pointer to starting page: {:p}", starting_page);
         println!("pointer to physical starting memory address: 0x{:x}", alloc_beginning);
+    }
+}
+
+pub fn deallocate_all_pages() {
+    unsafe {
+		let num_pages = HEAP_SIZE / PAGE_SIZE;
+		let mut beg = HEAP_START as *const Page;
+		let end = beg.add(num_pages);
+		let alloc_beg = ALLOC_START;
+		let alloc_end = ALLOC_START + num_pages * PAGE_SIZE;
+		let mut num = 0;
+		while beg < end {
+			if (*beg).is_taken() {
+				let start = beg as usize;
+				let memaddr = ALLOC_START
+				              + (start - HEAP_START)
+				                * PAGE_SIZE;
+				loop {
+					num += 1;
+					if (*beg).is_last() {
+						let end = beg as usize;
+						let memaddr = ALLOC_START
+						              + (end
+						                 - HEAP_START)
+						                * PAGE_SIZE
+						              + PAGE_SIZE - 1;
+						break;
+					}
+					beg = beg.add(1);
+				}
+                dealloc(memaddr as *mut u8);
+			}
+			beg = beg.add(1);
+		}
     }
 }
 
