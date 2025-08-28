@@ -5,6 +5,7 @@ pub mod uart;
 pub mod linear_allocator;
 pub mod shmage;
 pub mod page;
+pub mod test;
 
 
 
@@ -99,7 +100,9 @@ pub extern "C" fn kernel_main() {
     // I think the tutorial makes UartDriver a singleton, perhaps will do that later
     // let mut uart_instance = uart::Uart::new(0x1000_0000);
     // uart_instance.init();
+    // entry point into a stack allocated kernel shell
     shmage::shmage_init();
+
 //    page::print_alloc_start();
 //    page::init();
 //    page::print_page_allocations();
@@ -156,10 +159,16 @@ pub extern "C" fn kernel_main() {
 //    }
 }
 
-#[cfg(test)]
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
-    loop {
-        println!("testing...")
-    }
+// This is no bueno testing, but its been a nightmare to get the custom unit testing framework
+// to work and i want to at least have some test coverage now
+pub fn test_pages() {
+    println!("running test test_pages:");
+    page::print_page_allocations();
+    assert!(1 == 0);
+    println!("[ok]");
+}
+
+pub fn test() {
+    test_pages();
+    println!("tests succeeded!")
 }

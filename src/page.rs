@@ -1,3 +1,7 @@
+//! RISCV page grained memory virtualization for shmageOS
+//! None too different from unix local memory virtualization.
+//! Haven't really decided on whether or not to include partitioned global
+//! address space stuff here, or keep that as an abstraction over this
 use core::{mem::size_of, ptr::null_mut};
 use crate::{println, print};
 
@@ -6,15 +10,20 @@ unsafe extern "C" {
     static HEAP_SIZE: usize;
 }
 
-static mut ALLOC_START: usize = 0;
+// allocated memory start address
+static mut ALLOC_START: usize = 0b0;
 const PAGE_ORDER: usize = 12;
-pub const PAGE_SIZE: usize = 1 << 12;
+// size of a page (2**12 bytes or 4096 bytes)
+pub const PAGE_SIZE: usize = 0b1 << 12;
 
+// bit repsresentation of a page
+// (first bit sets whether taken or not,
+// second bit sets whether its the last)
 #[repr(u8)]
 pub enum PageBits {
-    Empty = 0,
-    Taken = 1 << 0,
-    Last = 1 << 1,
+    Empty = 0b0,
+    Taken = 0b1 << 0,
+    Last = 0b1 << 1,
 }
 
 impl PageBits {
@@ -35,7 +44,7 @@ pub struct Page {
 
 impl Page {
     pub fn is_last(&self) -> bool {
-        if self.flags & PageBits::Last.val() != 0{
+        if self.flags & PageBits::Last.val() != 0 {
             true
         } else {
             false
@@ -175,34 +184,65 @@ pub struct PageTable {
     pub entries: [PageTableEntry; 512]
 }
 
-// The bit representation of 64 bit page table entries
+// The bit representation of the beginning arg bits of 64 bit page table entries
 #[repr(usize)]
 #[derive(Copy, Clone)]
 pub enum PageTableEntryBits {
-    None = 0,
-    Valid = 1 << 0, // first bit is valid or not
-    Read = 1 << 1, // second bit is read permissions.
-    Write = 1 << 2,
-    Execute = 1 << 3,
-    User = 1 << 4,
-    Global = 1 << 5,
-    Access =  1 << 6,
-    Dirty = 1 << 7,
-    ReadWrite = 1 << 1 | 1 << 2, // Combos are just bitwise ors
-    ReadExecute = 1 << 1 | 1 << 3,
-    ReadWriteExecute = 1 << 1 | 1 << 2 | 1 << 3,
-    UserReadWrite = 1 << 1 | 1 << 2 | 1 << 4,
-    UserReadExecute = 1 << 1 | 1 << 3 | 1 << 4,
-    UserReadWriteExecute = 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4,
+    None = 0b0,
+    Valid = 0b1 << 0, // first bit is valid or not
+    Read = 0b1 << 1, // second bit is read permissions.
+    Write = 0b1 << 2,
+    Execute = 0b1 << 3,
+    User = 0b1 << 4,
+    Global = 0b1 << 5,
+    Access =  0b1 << 6,
+    Dirty = 0b1 << 7,
+    ReadWrite = 0b1 << 1 | 0b1 << 2, // Combos are just bitwise ors
+    ReadExecute = 0b1 << 1 | 0b1 << 3,
+    ReadWriteExecute = 0b1 << 1 | 0b1 << 2 | 0b1 << 3,
+    UserReadWrite = 0b1 << 1 | 0b1 << 2 | 0b1 << 4,
+    UserReadExecute = 0b1 << 1 | 0b1 << 3 | 0b1 << 4,
+    UserReadWriteExecute = 0b1 << 1 | 0b1 << 2 | 0b1 << 3 | 0b1 << 4,
 }
 impl PageTableEntryBits {
     pub fn as_usize(self) -> usize {
         self as usize
     }
+    pub fn as_i64(self) -> i64 {
+        self as i64
+    }
 }
 
+// does this need to be a struct? probably not but we get some
+// more convenient interfaces
 pub struct PageTableEntry {
-    pub entry : i64,
+    pub entry : usize,
+}
+
+impl PageTableEntry {
+    pub fn is_valid(self) -> bool {
+        // checks the valid bit of the entry
+        self.get_entry() & PageTableEntryBits::Valid.as_usize() != 0b0
+    }
+    // in riscv an entry is a leaf if any of the read write execute bits are set
+    pub fn is_leaf(&self) -> bool {
+        self.get_entry() & 0b111 != 0b000
+    }
+    // getter setter interface makes it so you can have immutable interface for
+    // pte i think
+    pub fn get_entry(&self) -> usize {
+        self.entry
+    }
+    pub fn set_entry(&mut self, entry: usize) {
+        self.entry = entry;
+    }
+    pub fn get_entry_as_i64(&self) -> i64 {
+        self.entry as i64
+    }
+}
+
+pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize, bits: i64, level: usize) {
+
 }
 
 // SATP regsiter located at: 0x180
@@ -276,4 +316,9 @@ pub fn print_page_allocations() {
 		);
 		println!(" ----------------------------------------");
 	}
+}
+
+#[cfg(test)]
+pub fn test_pages() {
+    print_page_allocations();
 }

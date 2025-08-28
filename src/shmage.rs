@@ -33,6 +33,7 @@ pub fn clear() {
     }
 }
 
+use crate::test;
 /// These use stack allocated memory to check for commands, but this is very limited!
 /// shows why we have a need for heap allocated memory
 /// obviously, we could just allocate from one global heap (arena allocation),
@@ -71,6 +72,17 @@ pub fn basic_command_process (input_array: &[char; 8]) {
     }
     if clear_command {
         clear();
+    }
+
+    let test_arr: [char; 4] = ['t', 'e', 's', 't'];
+    let mut test_command: bool = true;
+    for i in 0..3 {
+        if input_array[i] != test_arr[i] {
+            test_command = false;
+        }
+    }
+    if test_command {
+        test();
     }
 }
 
