@@ -1,7 +1,6 @@
 use core::{mem::size_of, ptr::null_mut};
 use crate::{println, print};
 
-// i think we have to define this ourselves???
 unsafe extern "C" {
     static HEAP_START: usize;
     static HEAP_SIZE: usize;
@@ -148,6 +147,17 @@ pub fn zalloc(pages: usize) -> *mut u8 {
     ret
 }
 
+// Allocate zero or more pages in the partitioned global address space.
+// note that like all page grained allocations, will allocate different
+// physical memory on different physical machines
+// allocated pages will be distributed across machines via fat pointers,
+// will prob need the fat pointer PGAS abstraction in a separate library first
+// the global address space should include a number of pages equal to n * pages, where n is the total num of nodes
+pub fn galloc(pages: usize, n_nodes: usize, node_names: *mut u8) -> *mut u8 {
+    // to be implemented... (requires virtual driver for cluster communication, so come back when you have UDP comms done)
+    0 as *mut u8
+}
+
 pub fn init() {
     unsafe {
         let num_pages = HEAP_SIZE / PAGE_SIZE;
@@ -161,6 +171,43 @@ pub fn init() {
     }
 }
 
+pub struct PageTable {
+    pub entries: [PageTableEntry; 512]
+}
+
+// The bit representation of 64 bit page table entries
+#[repr(usize)]
+#[derive(Copy, Clone)]
+pub enum PageTableEntryBits {
+    None = 0,
+    Valid = 1 << 0, // first bit is valid or not
+    Read = 1 << 1, // second bit is read permissions.
+    Write = 1 << 2,
+    Execute = 1 << 3,
+    User = 1 << 4,
+    Global = 1 << 5,
+    Access =  1 << 6,
+    Dirty = 1 << 7,
+    ReadWrite = 1 << 1 | 1 << 2, // Combos are just bitwise ors
+    ReadExecute = 1 << 1 | 1 << 3,
+    ReadWriteExecute = 1 << 1 | 1 << 2 | 1 << 3,
+    UserReadWrite = 1 << 1 | 1 << 2 | 1 << 4,
+    UserReadExecute = 1 << 1 | 1 << 3 | 1 << 4,
+    UserReadWriteExecute = 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4,
+}
+impl PageTableEntryBits {
+    pub fn as_usize(self) -> usize {
+        self as usize
+    }
+}
+
+pub struct PageTableEntry {
+    pub entry : i64,
+}
+
+// SATP regsiter located at: 0x180
+
+
 pub fn print_alloc_start() {
     unsafe {
         let starting_page = HEAP_START as *const Page;
@@ -169,7 +216,6 @@ pub fn print_alloc_start() {
         println!("pointer to physical starting memory address: 0x{:x}", alloc_beginning);
     }
 }
-
 
 pub fn print_page_allocations() {
 	unsafe {

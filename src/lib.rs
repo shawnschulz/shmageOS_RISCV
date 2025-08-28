@@ -97,9 +97,8 @@ pub fn shfetch() {
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() {
     // I think the tutorial makes UartDriver a singleton, perhaps will do that later
-    let mut uart_instance = uart::Uart::new(0x1000_0000);
-    uart_instance.init();
-    shfetch();
+    // let mut uart_instance = uart::Uart::new(0x1000_0000);
+    // uart_instance.init();
     shmage::shmage_init();
 //    page::print_alloc_start();
 //    page::init();
@@ -160,6 +159,7 @@ pub extern "C" fn kernel_main() {
 #[cfg(test)]
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    test_main();
-    loop {}
+    loop {
+        println!("testing...")
+    }
 }

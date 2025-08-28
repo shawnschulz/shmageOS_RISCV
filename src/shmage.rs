@@ -1,3 +1,5 @@
+use core::arch::asm;
+
 // This is our basic shell
 pub fn shfetch() {
     println!("Welcome to shmageOS!");
@@ -101,7 +103,7 @@ pub fn shmage_init() -> ! {
                     // previous character with a ' '
                     print!("{}{}{}", 8 as char, ' ', 8 as char);
                     if input_i > 0 {
-                        input_i - 1;
+                        input_i -= 1;
                         input_array[input_i] = ' ';
                     }
                 },
@@ -147,6 +149,13 @@ pub fn shmage_init() -> ! {
                             input_i += 1;
                         }
                 },
+                }
+            }
+            // Try to sleep the processor, i think this would work but
+            // qemu uses a whole core
+            for i in 0..1000{
+                unsafe {
+                    asm!("ADDI x0, x0, 0")
                 }
             }
         }
