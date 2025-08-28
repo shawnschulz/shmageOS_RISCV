@@ -317,8 +317,3 @@ pub fn print_page_allocations() {
 		println!(" ----------------------------------------");
 	}
 }
-
-#[cfg(test)]
-pub fn test_pages() {
-    print_page_allocations();
-}

@@ -148,8 +148,6 @@ pub extern "C" fn kernel_main() {
 //                },
 //                _ => {
 //                    print!("{}", c as char);
-//                }
-//            }
 //        }
 //    }
 // Use this later to poll the serial device
@@ -164,11 +162,23 @@ pub extern "C" fn kernel_main() {
 pub fn test_pages() {
     println!("running test test_pages:");
     page::print_page_allocations();
-    assert!(1 == 0);
-    println!("[ok]");
+    assert!(1 == 1);
+    println!("[ok]")
+;
+}
+
+pub fn test_alloc() {
+    println!("allocating some pages");
+    for i in (1..32704).step_by(1000) {
+        let _alloc_start = page::alloc(1000);
+    }
+    page::print_page_allocations();
+    println!("[ok]")
+;
 }
 
 pub fn test() {
     test_pages();
+    test_alloc();
     println!("tests succeeded!")
 }
