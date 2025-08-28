@@ -7,9 +7,6 @@ pub mod shmage;
 pub mod page;
 pub mod test;
 
-
-
-
 #[macro_export]
 macro_rules! print {
     ($($args:tt)+) => ({
@@ -100,7 +97,7 @@ pub extern "C" fn kernel_main() {
     shmage::shmage_init();
 }
 
-// This is no bueno testing, but its been a nightmare to get the custom unit testing framework
+// Really would like this to be run in a test harness, but its been a nightmare to get the custom unit testing framework
 // to work and i want to at least have some test coverage now
 pub fn test_pages() {
     println!("running test test_pages:");

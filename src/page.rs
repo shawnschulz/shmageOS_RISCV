@@ -243,8 +243,26 @@ impl PageTableEntry {
     }
 }
 
+// Map virtual memory onto physical memory in the PageTable
 pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize, bits: i64, level: usize) {
-
+    // ensure rwx bits provided otherwise a memory leak will occur
+    assert!(bits & 0b111 != 0b000);
+    // get the the virtual page number fro mthe virtual address
+    // page number is 9 bits so we use a 9 bit mask to just get the 9 bits of the page after rotating
+    let virtual_page_numbers = [
+        // remember the leading 12 bits aren't used and offset the pages so all our masks need to rotate this offest out
+        (virtual_address >> 12) & 0b111111111, // bits 12:20 of the address
+        (virtual_address >> 21) & 0b111111111, // bits 21:29 of the address
+        (virtual_address >> 30) & 0b111111111, // bits 30:38 of the address
+    ];
+    // physical page number extraction is similar, but the last physical page uses all remaining 26 bits instead of 9
+    let phyiscal_page_numbers = [
+        (physical_address >> 12) & 0b111111111, // bits 12:20 of the address
+        (physical_address >> 21) & 0b111111111, // bits 21:29 of the address
+        (physical_address >> 30) & 0b11111111111111111111111111, // bits 30:55 of the address
+    ];
+    let mut moving_pte_reference = &mut root.entries[virtual_page_numbers[2]];
+    // traverse the pagetable and set bits accordingly
 }
 
 // SATP regsiter located at: 0x180
