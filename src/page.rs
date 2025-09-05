@@ -267,16 +267,31 @@ pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize
         if !moving_pte_reference.is_valid() {
             let page = zalloc(1);
             // we right shift by 2 places (ig cuz the rsw bits are still there?)
-            moving_pte_reference.set_entry((page as i64 >> 2) | PageTableEntryBits::Valid.val());
+            moving_pte_reference.set_entry((page as i64 >> 2) | PageTableEntryBits::Valid.as_i64());
         }
-        let entry = ((moving_pte_reference.get_entry() &!0b1111111111) as *mut PageTableEntry);
+        let entry = ((moving_pte_reference.get_entry() & !0b1111111111) as *mut PageTableEntry);
         // should we do better error handling than unwrapping here?
         let moving_pte_reference = unsafe { entry.add(virtual_page_numbers[i]).as_mut().unwrap() };
     }
     // After the loop should be at the 0th virtual pagen umber entry
     // set our entry to the expected entry structure
-    let entry = (physical_page_numbers[2] << 28 as i64 | //the second entry is bits [53:28]
-    )
+    let entry = (physical_page_numbers[2] << 28) as i64 | //the second entry is bits [53:28]
+    (physical_page_numbers[1] << 19) as i64 |
+    (physical_page_numbers[0] << 10) as i64 |
+    bits | // reminder these are the user read write bits specified in args
+    PageTableEntryBits::Valid.val();
+    moving_pte_reference.set_entry(entry);
+}
+
+pub fn unmap(root: &mut PageTable) {
+    // Page table starts at level 2
+    for level_2_table_i in 0..PageTable::len() {
+        let ref level_2_entry = root.entries[level_2_table_i];
+        if level_2_entry.is_valid() && level_2_entry.is_branch() {
+            // If valid, free down the table
+            let level_1_memory_address = (level_2_entry.get_entry() & !0b1111111111) << 2;
+        };
+    }
 }
 
 
