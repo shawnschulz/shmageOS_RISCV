@@ -5,7 +5,7 @@ pub mod uart;
 pub mod linear_allocator;
 pub mod shmage;
 pub mod page;
-pub mod test;
+// pub mod test;
 
 #[macro_export]
 macro_rules! print {
