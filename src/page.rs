@@ -185,6 +185,11 @@ pub fn init() {
 pub struct PageTable {
     pub entries: [PageTableEntry; 512]
 }
+impl PageTable {
+    pub fn len() -> usize {
+        512
+    }
+}
 
 // The bit representation of the beginning arg bits of 64 bit page table entries
 #[repr(usize)]
@@ -222,9 +227,9 @@ pub struct PageTableEntry {
 }
 
 impl PageTableEntry {
-    pub fn is_valid(self) -> bool {
+    pub fn is_valid(&self) -> bool {
         // checks the valid bit of the entry
-        self.get_entry() & PageTableEntryBits::Valid.as_usize() != 0b0
+        self.get_entry() & PageTableEntryBits::Valid.as_i64() != 0b0
     }
     // in riscv an entry is a leaf if any of the read write execute bits are set
     pub fn is_leaf(&self) -> bool {
@@ -287,7 +292,7 @@ pub fn unmap(root: &mut PageTable) {
     // Page table starts at level 2
     for level_2_table_i in 0..PageTable::len() {
         let ref level_2_entry = root.entries[level_2_table_i];
-        if level_2_entry.is_valid() && level_2_entry.is_branch() {
+        if level_2_entry.is_valid() && !level_2_entry.is_leaf() {
             // If valid, free down the table
             let level_1_memory_address = (level_2_entry.get_entry() & !0b1111111111) << 2;
             let level_1_table = unsafe {
