@@ -218,7 +218,7 @@ impl PageTableEntryBits {
 // does this need to be a struct? probably not but we get some
 // more convenient interfaces
 pub struct PageTableEntry {
-    pub entry : usize,
+    pub entry : i64,
 }
 
 impl PageTableEntry {
@@ -232,14 +232,14 @@ impl PageTableEntry {
     }
     // getter setter interface makes it so you can have immutable interface for
     // pte i think
-    pub fn get_entry(&self) -> usize {
-        self.entry
+    pub fn get_entry(&self) -> i64 {
+        self.entry as i64
     }
-    pub fn set_entry(&mut self, entry: usize) {
+    pub fn set_entry(&mut self, entry: i64) {
         self.entry = entry;
     }
-    pub fn get_entry_as_i64(&self) -> i64 {
-        self.entry as i64
+    pub fn get_entry_as_usize(&self) -> usize {
+        self.entry as usize
     }
 }
 
@@ -256,7 +256,7 @@ pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize
         (virtual_address >> 30) & 0b111111111, // bits 30:38 of the address
     ];
     // physical page number extraction is similar, but the last physical page uses all remaining 26 bits instead of 9
-    let phyiscal_page_numbers = [
+    let physical_page_numbers = [
         (physical_address >> 12) & 0b111111111, // bits 12:20 of the address
         (physical_address >> 21) & 0b111111111, // bits 21:29 of the address
         (physical_address >> 30) & 0b11111111111111111111111111, // bits 30:55 of the address
@@ -279,7 +279,7 @@ pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize
     (physical_page_numbers[1] << 19) as i64 |
     (physical_page_numbers[0] << 10) as i64 |
     bits | // reminder these are the user read write bits specified in args
-    PageTableEntryBits::Valid.val();
+    PageTableEntryBits::Valid.as_i64();
     moving_pte_reference.set_entry(entry);
 }
 
@@ -290,6 +290,9 @@ pub fn unmap(root: &mut PageTable) {
         if level_2_entry.is_valid() && level_2_entry.is_branch() {
             // If valid, free down the table
             let level_1_memory_address = (level_2_entry.get_entry() & !0b1111111111) << 2;
+            let level_1_table = unsafe {
+                (level_1_memory_address as *mut PageTable).as_mut().unwrap()
+            };
         };
     }
 }
