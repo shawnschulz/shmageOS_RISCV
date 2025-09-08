@@ -288,6 +288,7 @@ pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize
     moving_pte_reference.set_entry(entry);
 }
 
+// Unmap all memory from the root of the pagetable
 pub fn unmap(root: &mut PageTable) {
     // Page table starts at level 2
     for level_2_table_i in 0..PageTable::len() {
@@ -298,7 +299,43 @@ pub fn unmap(root: &mut PageTable) {
             let level_1_table = unsafe {
                 (level_1_memory_address as *mut PageTable).as_mut().unwrap()
             };
-        };
+            for level_1_table_i in 0..PageTable::len() {
+                let ref level_1_entry = root.entries[level_1_table_i];
+                if level_1_entry.is_valid() && !level_1_entry.is_leaf() {
+                    let level_0_memory_address = (level_1_entry.get_entry() & !0b1111111111) << 2;
+                    // free level 0, the outermost leaves of the tree
+                    dealloc(level_0_memory_address as *mut u8);
+                }
+            }
+            // once everything at level 0 is deallocated, deallocated level 1
+            dealloc(level_1_memory_address as *mut u8);
+            // note that the level 2 (highest level root) is not freed.
+        }
+    }
+}
+
+pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) {
+    let virtual_page_numbers = [
+        // remember the leading 12 bits aren't used and offset the pages so all our masks need to rotate this offest out
+        (virtual_address >> 12) & 0b111111111, // bits 12:20 of the address
+        (virtual_address >> 21) & 0b111111111, // bits 21:29 of the address
+        (virtual_address >> 30) & 0b111111111, // bits 30:38 of the address
+    ];
+    // Reminder the upper bits of the address define the highest lvel (root) of the pagetable
+    let moving_pte_reference = &root.entries[virtual_page_numbers[2]];
+    for i in (0..=2).rev() {
+        if !moving_pte_reference.is_valid() {
+            // need to page fault if the reference ends up being invalid
+            break;
+        }
+        else if moving_pte_reference.is_leaf() {
+            // any level can be a leaf in risc V
+            // we apply an offest_mask to the virtual page number to get the physical page number
+            // since physical page numbers start at bit 12 and are 9 bits, we mask
+            // 12 + i * 9
+            let offset_mask = (0b1 << (12 + i * 9)) - 0b1;
+            let virtual_address_page_offset = virtual_address & offset_mask;
+        }
     }
 }
 
