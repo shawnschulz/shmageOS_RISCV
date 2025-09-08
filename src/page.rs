@@ -314,7 +314,7 @@ pub fn unmap(root: &mut PageTable) {
     }
 }
 
-pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) {
+pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option {
     let virtual_page_numbers = [
         // remember the leading 12 bits aren't used and offset the pages so all our masks need to rotate this offest out
         (virtual_address >> 12) & 0b111111111, // bits 12:20 of the address
@@ -329,14 +329,34 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) {
             break;
         }
         else if moving_pte_reference.is_leaf() {
-            // any level can be a leaf in risc V
-            // we apply an offest_mask to the virtual page number to get the physical page number
-            // since physical page numbers start at bit 12 and are 9 bits, we mask
-            // 12 + i * 9
+            /*
+            any level can be a leaf in risc V. in this case we have found a leaf and return it
+            we apply an offest_mask to the virtual page number to get the physical page number
+            since physical page numbers start at bit 12 and are 9 bits, we mask
+            12 + i * 9
+            */
             let offset_mask = (0b1 << (12 + i * 9)) - 0b1;
             let virtual_address_page_offset = virtual_address & offset_mask;
+            // To get a physical address we unmask after applying the 2 bit offset we had to apply above
+            let physical_address = ((moving_pte_reference.get_entry() << 2) as usize) & !offset_mask;
+            /*
+            since we should have a valid physical address, we should return
+            we need to flip the bits based on the page offset, since the unmasking process removed them
+            */
+            return Some(physical_address | virtual_address_page_offset);
         }
+        /*
+        in this case, the reference is a valid nonleaf entry. we need to set our moving refernce to the
+        next entry pointed to by this entry. we did this before, but to recap we get the next entry via .get_entry(),
+        mask the first 10 bits and right shift 2 places, since it was left shifted when the entry was made
+        */
+        let next_entry = (moving_pte_reference.get_entry() & !0b1111111111) << 2 as *const Entry;
+        // Note that if the "is_valid()" check at the top if statement works, we should hopefully not get
+        // i == 0 here leading to a -1 indexing of page numbers lol
+        moving_pte_reference = unsafe{ next_entry.add(virtual_page_numbers[i - 1]).as_ref().unwarp() }
     }
+    // reaching here means we didn't find any leaves in the page table (a page fault!)
+    None
 }
 
 
