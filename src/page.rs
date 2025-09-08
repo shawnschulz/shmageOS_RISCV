@@ -314,7 +314,7 @@ pub fn unmap(root: &mut PageTable) {
     }
 }
 
-pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option {
+pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option<usize> {
     let virtual_page_numbers = [
         // remember the leading 12 bits aren't used and offset the pages so all our masks need to rotate this offest out
         (virtual_address >> 12) & 0b111111111, // bits 12:20 of the address
@@ -322,7 +322,7 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option {
         (virtual_address >> 30) & 0b111111111, // bits 30:38 of the address
     ];
     // Reminder the upper bits of the address define the highest lvel (root) of the pagetable
-    let moving_pte_reference = &root.entries[virtual_page_numbers[2]];
+    let mut moving_pte_reference = &root.entries[virtual_page_numbers[2]];
     for i in (0..=2).rev() {
         if !moving_pte_reference.is_valid() {
             // need to page fault if the reference ends up being invalid
@@ -350,10 +350,10 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option {
         next entry pointed to by this entry. we did this before, but to recap we get the next entry via .get_entry(),
         mask the first 10 bits and right shift 2 places, since it was left shifted when the entry was made
         */
-        let next_entry = (moving_pte_reference.get_entry() & !0b1111111111) << 2 as *const Entry;
+        let next_entry = ((moving_pte_reference.get_entry() & !0b1111111111) << 2) as *const PageTableEntry;
         // Note that if the "is_valid()" check at the top if statement works, we should hopefully not get
         // i == 0 here leading to a -1 indexing of page numbers lol
-        moving_pte_reference = unsafe{ next_entry.add(virtual_page_numbers[i - 1]).as_ref().unwarp() }
+        moving_pte_reference = unsafe{ next_entry.add(virtual_page_numbers[i - 1]).as_ref().unwrap() }
     }
     // reaching here means we didn't find any leaves in the page table (a page fault!)
     None
@@ -361,6 +361,7 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option {
 
 
 // SATP regsiter located at: 0x180
+
 
 
 pub fn print_alloc_start() {
