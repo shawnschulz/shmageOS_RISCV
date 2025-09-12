@@ -363,6 +363,10 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option<u
 // SATP regsiter located at: 0x180
 
 
+// In order to enter supervisor mode, we must map everything we
+pub fn id_map() {};
+
+
 
 pub fn print_alloc_start() {
     unsafe {
