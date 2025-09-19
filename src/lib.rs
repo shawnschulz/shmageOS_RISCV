@@ -1,10 +1,10 @@
 #![no_std]
 
 pub mod uart;
-// pub mod page;
+pub mod page;
 pub mod linear_allocator;
 pub mod shmage;
-pub mod page;
+pub mod malloc;
 // pub mod test;
 
 #[macro_export]
@@ -67,6 +67,21 @@ pub extern "C" fn abort() -> !{
         // process waits for some interrupt indefinitely on abort
         use core::arch::asm;
         unsafe {asm!("wfi")};
+    }
+}
+
+// In order to enter supervisor mode, we must map virtual memory addresses
+// to physical memory addresses rather than use the physical addresses as we've been doing
+// in machine mode. This function maps a range of virtual page table addresses to physical addresses
+pub fn map_range_of_addresses(root: &mut page::PageTable, start: usize, end: usize, bits: i64) {
+    let mut memory_address =  start & !(page::PAGE_SIZE - 1);
+    // This is named "kilobytes" because its the number of 4012 KB pages
+    // this was intended to allow for the addition of huge page sizes (GiB and MiB)
+    // later in the tutorial
+    let num_pages_kilobits = (page::align_value(end, 12) - memory_address) / page::PAGE_SIZE;
+    for _ in 0..num_pages_kilobits {
+        page::map(root, memory_address, memory_address, bits, 0);
+        memory_address += 1 << 12;
     }
 }
 

@@ -33,9 +33,9 @@ impl PageBits {
 }
 
 // Idk it basically takes a value it aligns it to a power of 2
-pub const fn align_val(val: usize, order: usize) -> usize {
+pub const fn align_value(value: usize, order: usize) -> usize {
     let order = (1usize << order)  - 1;
-    (val + order) & !order
+    (value + order) & !order
 }
 
 pub struct Page {
@@ -178,7 +178,7 @@ pub fn init() {
             (*pointer.add(i)).clear();
         }
         // align  alloc start to the page boundry
-        ALLOC_START = align_val(HEAP_START + num_pages * size_of::<Page,>(), PAGE_ORDER);
+        ALLOC_START = align_value(HEAP_START + num_pages * size_of::<Page,>(), PAGE_ORDER);
     }
 }
 
@@ -332,8 +332,8 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option<u
             /*
             any level can be a leaf in risc V. in this case we have found a leaf and return it
             we apply an offest_mask to the virtual page number to get the physical page number
-            since physical page numbers start at bit 12 and are 9 bits, we mask
-            12 + i * 9
+            since physical page numbers are offset by 12 bits + 9 for every page.
+            the mask applies this offset, thereby giving us the correct physical address
             */
             let offset_mask = (0b1 << (12 + i * 9)) - 0b1;
             let virtual_address_page_offset = virtual_address & offset_mask;
@@ -363,8 +363,6 @@ pub fn virtual_to_physical(root: &PageTable, virtual_address: usize) -> Option<u
 // SATP regsiter located at: 0x180
 
 
-// In order to enter supervisor mode, we must map everything we
-pub fn id_map() {};
 
 
 
