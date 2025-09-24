@@ -37,8 +37,8 @@ impl AllocationList {
             self.flags_size = self.flags_size | AllocationFlags::Taken.value();
         }
     }
-    pub fn get_size(&self) {
-        self.flags_size & !AllocationFlags::Taken.value();
+    pub fn get_size(&self) -> usize {
+        self.flags_size & !AllocationFlags::Taken.value()
     }
 }
 
@@ -78,11 +78,40 @@ pub fn kernel_malloc(size: usize) -> *mut u8 {
     unsafe {
        let aligned_size = align_value(size, 3) + size_of::<AllocationList>();
        let mut head = KERNEL_MEMORY_HEAD;
+       let tail = (head as *mut u8).add(KERNEL_MEMORY_ALLOCATION_SIZE * PAGE_SIZE) as *mut AllocationList;
+        while head < tail {
+            // while space in kernel memory left and more space to allocate, allocate chunks chunks
+            // by iterating through linked list
+            if !(*head).is_taken() && size <= (*head).get_size() {
+                let chunk_size = (*head).get_size();
+                let remainder = chunk_size - size;
+                (*head).set_taken();
+                if remainder > size_of::<AllocationList>() {
+                    let next = (head as *mut u8).add(size)
+                        as *mut AllocationList;
+                    (*next).set_free();
+                    (*next).set_size(remainder);
+                    (*head).set_size(size);
+                }
+                else {
+                    // give the head the whole chunk if the remaining free space is bigger than how much your allocating
+                    (*head).set_size(chunk_size);
+                }
+                return head.add(1) as *mut u8;
+            }
+            else {
+               // since chunk wasn't free, move on to next chunk
+               head = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
+            }
+        }
+        // If we go through all the addresses and don't find any chunks we can allocate, return a null ptr
+        null_mut()
     }
 }
 
-// allocate zeroed memory based on number of bytes
-pub fn kernel_zmalloc(size: usize) -> *mut u8 {
-    let aligned_size = align_value(size, 3);
-    let ret = kernel
-}
+// // allocate zeroed memory based on number of bytes
+// pub fn kernel_zmalloc(size: usize) -> *mut u8 {
+//     let aligned_size = align_value(size, 3);
+//     let ret = kernel;
+//     return 0;
+// }
