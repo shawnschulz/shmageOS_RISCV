@@ -120,7 +120,7 @@ pub fn kernel_malloc(size: usize) -> *mut u8 {
              }
          }
      }
-     return 0;
+     return ret;
  }
 
 // free kernel allocated memory
@@ -140,4 +140,27 @@ pub fn kernel_free(address_pointer: *mut u8) {
 // Take the kernel memory head and traverse it looking for contiguous addresses that are free
 // if 2 contiguous addresses are free, coalesce them into one address
 pub fn coalesce() {
+    unsafe {
+        let mut head = KERNEL_MEMORY_HEAD;
+        let tail = (head as *mut u8).add(KERNEL_MEMORY_ALLOCATION_SIZE * PAGE_SIZE) as *mut AllocationList;
+        while head < tail {
+            // Get the next address
+            let next = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
+            // in this case, could have a double free or other problem. continue to the next one
+            if (*head).get_size() == 0 {
+                break
+            }
+            // in this case, the next pointer has gone past the tail, should not do anything in this case
+            else if next >= tail {
+                break
+            }
+            // if they are both free, coalesce them into one address by setting the size of the
+            // head to go over the next addresses's size
+            if (*head).is_free() && (*next).is_free() {
+                (*head).set_size((*head).get_size() + (*next).get_size())
+            }
+            // go to the next address
+            head = (*head as mut u8).add((*head).get_size()) as *mut AllocationList;
+        }
+    }
 }
