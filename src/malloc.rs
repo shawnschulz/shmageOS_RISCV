@@ -76,7 +76,7 @@ pub fn init() {
 // allocate memory based on bytes
 pub fn kernel_malloc(size: usize) -> *mut u8 {
     unsafe {
-       let aligned_size = align_value(size, 3) + size_of::<AllocationList>();
+       let size = align_value(size, 3) + size_of::<AllocationList>();
        let mut head = KERNEL_MEMORY_HEAD;
        let tail = (head as *mut u8).add(KERNEL_MEMORY_ALLOCATION_SIZE * PAGE_SIZE) as *mut AllocationList;
         while head < tail {
@@ -109,9 +109,35 @@ pub fn kernel_malloc(size: usize) -> *mut u8 {
     }
 }
 
-// // allocate zeroed memory based on number of bytes
-// pub fn kernel_zmalloc(size: usize) -> *mut u8 {
-//     let aligned_size = align_value(size, 3);
-//     let ret = kernel;
-//     return 0;
-// }
+ // allocate zeroed memory based on number of bytes
+ pub fn kernel_zmalloc(size: usize) -> *mut u8 {
+     let aligned_size = align_value(size, 3);
+     let ret = kernel_malloc(size);
+     if !ret.is_null() {
+         for i in 0..size {
+             unsafe {
+                 (*ret.add(i)) = 0;
+             }
+         }
+     }
+     return 0;
+ }
+
+// free kernel allocated memory
+pub fn kernel_free(address_pointer: *mut u8) {
+    unsafe {
+        if !address_pointer.is_null() {
+            let memory_pointer = (address_pointer as *mut AllocationList).offset(-1);
+            if (*memory_pointer).is_taken() {
+                (*memory_pointer).set_free();
+            }
+            // free space pattern: want to coalesce smaller chunks into a bigger chunk of free memory
+            coalesce();
+        }
+    }
+}
+
+// Take the kernel memory head and traverse it looking for contiguous addresses that are free
+// if 2 contiguous addresses are free, coalesce them into one address
+pub fn coalesce() {
+}
