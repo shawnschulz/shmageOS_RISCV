@@ -130,8 +130,8 @@ pub fn kernel_free(address_pointer: *mut u8) {
             let memory_pointer = (address_pointer as *mut AllocationList).offset(-1);
             if (*memory_pointer).is_taken() {
                 (*memory_pointer).set_free();
-            }
             // free space pattern: want to coalesce smaller chunks into a bigger chunk of free memory
+            }
             coalesce();
         }
     }
@@ -160,6 +160,19 @@ pub fn coalesce() {
                 (*head).set_size((*head).get_size() + (*next).get_size())
             }
             // go to the next address
+            head = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
+        }
+    }
+}
+
+// print for debugging ( this is pulled directly from the tutorial )
+pub fn print_kernel_memory_table() {
+    unsafe {
+        let mut head = KERNEL_MEMORY_HEAD;
+        let tail = (head as *mut u8).add(KERNEL_MEMORY_ALLOCATION_SIZE * PAGE_SIZE) as *mut AllocationList;
+        println!("address, size, free_status");
+        while head < tail {
+            println!("{:p}, {:<10}, {}", head, (*head).get_size(), (*head).is_taken());
             head = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
         }
     }
