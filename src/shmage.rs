@@ -23,9 +23,13 @@ pub fn shfetch() {
     println!("");
 }
 use crate::page;
+use crate::malloc;
 
 pub fn ptable() {
     page::print_page_allocations();
+}
+pub fn pkmemtable() {
+    malloc::print_kernel_memory_table();
 }
 pub fn clear() {
     for i in 0..200 {
@@ -83,6 +87,17 @@ pub fn basic_command_process (input_array: &[char; 8]) {
     }
     if test_command {
         test();
+    }
+
+    let kmem_arr: [char; 5] = ['p', 'k', 'm', 'e', 'm'];
+    let mut kmem_command: bool = true;
+    for i in 0..4 {
+        if input_array[i] != kmem_arr[i] {
+            kmem_command = false;
+        }
+    }
+    if kmem_command {
+        pkmemtable();
     }
 }
 

@@ -2,6 +2,8 @@
 
 use crate::page::{align_value, zalloc, PageTable, PAGE_SIZE};
 use core::{mem::size_of, ptr::null_mut};
+use crate::println;
+use crate::print;
 
 // Mark an allocated address as taken by setting the 64th bit to 1
 #[repr(usize)]
