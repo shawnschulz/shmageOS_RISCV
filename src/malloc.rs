@@ -156,11 +156,11 @@ pub fn coalesce() {
             }
             // if they are both free, coalesce them into one address by setting the size of the
             // head to go over the next addresses's size
-            if (*head).is_free() && (*next).is_free() {
+            if !(*head).is_taken() && !(*next).is_taken() {
                 (*head).set_size((*head).get_size() + (*next).get_size())
             }
             // go to the next address
-            head = (*head as mut u8).add((*head).get_size()) as *mut AllocationList;
+            head = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
         }
     }
 }
