@@ -8,10 +8,12 @@ CFLAGS+=-static -ffreestanding -nostdlib -fno-rtti -fno-exceptions
 CFLAGS+=-march=rv64gc -mabi=lp64d
 INCLUDES=
 LINKER_SCRIPT=-Tsrc/lds/virt.lds -Wl,--build-id=none
+SBI_LINKER_SCRIPT=-Tsrc/lds/link_sbi.lds -Wl,--build-id=none
 TYPE=debug
 RUST_TARGET=./target/riscv64gc-unknown-none-elf/$(TYPE)
 LIBS=-L$(RUST_TARGET)
 SOURCES_ASM=$(wildcard src/asm/*.S)
+SBI_SOURCES_ASM=$(wildcard src/sbi_compatibility_asm/*.S)
 # wtf is -lsos
 LIB=-lshmageOS -lgcc
 OUT=os.elf
@@ -35,6 +37,11 @@ all:
 	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
 run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT)
+sbi_all:
+	cargo build
+	$(CC) $(CFLAGS) $(SBI_LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SBI_SOURCES_ASM) $(LIBS) $(LIB)
+sbi_run: sbi_all
+	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios default -kernel $(OUT)
 create_boot_image:
 	echo "TODO: make it so you can link to a bootloader"
 serial_console:
