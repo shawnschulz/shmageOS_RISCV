@@ -49,9 +49,10 @@ machine, I went with 128M since I think that's enough RAM for now.
 We can provide other pieces of memory, such as QSPI, or ROM, but we're
 telling the linker script here that we have one pool of RAM.
 */
+/* Note the 0x80000000 address is protected on orangepi, editing here*/
 MEMORY
 {
-  ram  (wxa) : ORIGIN = 0x80000000, LENGTH = 128M
+  ram  (wxa) : ORIGIN = 0x11000000, LENGTH = 64M
 }
 
 /*
@@ -88,6 +89,7 @@ global uninitialized variables go into bss.
 */
 SECTIONS
 {
+  . = 0x11000000;
   /*
     The first part of our RAM layout will be the text section.
 	Since our CPU instructions are here, and our memory starts at

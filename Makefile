@@ -25,6 +25,7 @@ CPU=rv64
 CPUS=4
 MEM=128M
 DRIVE=hdd.dsk
+OUT_BIN=shmageOS
 
 # The problem: i think -lsos is supposed to link to some static libirary file with the symbol name for
 # kernel_main, but idk this isn't in there
@@ -33,12 +34,20 @@ DRIVE=hdd.dsk
 all:
 	cargo build 
 	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
+	riscv64-unknown-elf-objcopy -O binary os.elf kernel.bin
 run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT)
+run_bin: all
+	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT_BIN)
+orangepi: all
+	mkimage -A riscv -O linux -T script -C none -a 0x2c100000 -n "Boot Script" -d boot.cmd boot.scr
+	sudo cp os.elf /media/shawn/opi_root/boot/
+	sudo cp kernel.bin /media/shawn/opi_root/boot/
+	sudo cp boot.* /media/shawn/opi_root/boot/
 create_boot_image:
 	echo "TODO: make it so you can link to a bootloader"
 serial_console:
-	sudo minicom -D /dev/ttyUSB0
+	screen /dev/ttyUSB0 115200
 
 
 .PHONY: clean

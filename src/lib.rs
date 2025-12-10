@@ -13,7 +13,7 @@ macro_rules! print {
         use core::fmt::Write;
         // it's macro magic, but basically the stuff in a print will
         // get put into a write! call in the Uart's write method
-        let _ = write!(crate::uart::Uart::new(0x1000_0000), $($args)+);
+        let _ = write!(crate::uart::Uart::new(0xD4017000), $($args)+);
     });
 }
 #[macro_export]

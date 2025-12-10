@@ -109,7 +109,7 @@ use crate::print;
 // Initializes the process loop and uses arena allocaiton to allocate
 // a heap
 pub fn shmage_init() -> ! {
-    let mut uart_instance = Uart::new(0x1000_0000);
+    let mut uart_instance = Uart::new(0xD4017000);
     uart_instance.init();
     shfetch();
     let mut input_array: [char; 8] = [' ',' ',' ',' ',' ',' ',' ',' '];
