@@ -30,6 +30,8 @@ _start:
 	ori t1, t1, 0x2       # set SIE bit (enable S-mode interrupts)
 	csrw sstatus, t1
 
+	la		ra, 4f
+
 	sret
 
 	# la a1, start_string

@@ -40,7 +40,7 @@ run: all
 run_bin: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT_BIN)
 orangepi: all
-	mkimage -A riscv -O linux -T script -C none -a 0x2c100000 -n "Boot Script" -d boot.cmd boot.scr
+	mkimage -A riscv -n "Boot Script" -d boot.cmd boot.scr
 	sudo cp os.elf /media/shawn/opi_root/boot/
 	sudo cp kernel.bin /media/shawn/opi_root/boot/
 	sudo cp boot.* /media/shawn/opi_root/boot/

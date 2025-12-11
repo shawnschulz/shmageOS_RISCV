@@ -2,6 +2,8 @@ use core::arch::asm;
 
 // This is our basic shell
 pub fn shfetch() {
+    print!("testtttting");
+    print!(", is this thing on");
     println!("Welcome to shmageOS!");
     println!("           _              user@wip");
     println!("        ___               ------------------------------");
@@ -22,6 +24,7 @@ pub fn shfetch() {
     println!("_______________________");
     println!("");
 }
+
 use crate::page;
 use crate::malloc;
 
@@ -110,7 +113,7 @@ use crate::print;
 // a heap
 pub fn shmage_init() -> ! {
     let mut uart_instance = Uart::new(0xD4017000);
-    uart_instance.init();
+    // uart_instance.init();
     shfetch();
     let mut input_array: [char; 8] = [' ',' ',' ',' ',' ',' ',' ',' '];
     // single character input process loop
