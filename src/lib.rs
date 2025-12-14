@@ -19,13 +19,16 @@ macro_rules! print {
 #[macro_export]
 macro_rules! println {
     () => ({
-		print!("\n")
+        // Need to change this to the correct 16550 endline byte char
+        // i think this is 0x0A
+        // print!("\n")
+		print!("\r\n")
 	});
 	($fmt:expr) => ({
-		print!(concat!($fmt, "\n"))
+		print!(concat!($fmt, "\r\n"))
 	});
 	($fmt:expr, $($args:tt)+) => ({
-		print!(concat!($fmt, "\n"), $($args)+)
+		print!(concat!($fmt, "\r\n"), $($args)+)
 	});
 }
 

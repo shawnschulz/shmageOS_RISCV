@@ -10,33 +10,6 @@ use crate::print;
 enum AllocationFlags {
     Taken = 0b1 << 63
 }
-
-impl AllocationFlags {
-    pub fn value(self) -> usize {
-       self as usize
-    }
-}
-
-struct AllocationList {
-    pub flags_size: usize
-}
-
-impl AllocationList {
-    pub fn is_taken(&self) -> bool {
-        self.flags_size & AllocationFlags::Taken.value() != 0b0
-    }
-    pub fn set_taken(&mut self) {
-        self.flags_size |= AllocationFlags::Taken.value();
-    }
-    pub fn set_free(&mut self) {
-        self.flags_size = !AllocationFlags::Taken.value() & self.flags_size;
-    }
-    // ngl this makes no sense to me
-    pub fn set_size(&mut self, size: usize) {
-        let taken_check = self.is_taken();
-        self.flags_size = size & !AllocationFlags::Taken.value();
-        if taken_check {
-            self.flags_size = self.flags_size | AllocationFlags::Taken.value();
         }
     }
     pub fn get_size(&self) -> usize {
@@ -167,6 +140,8 @@ pub fn coalesce() {
     }
 }
 
+
+
 // print for debugging ( this is pulled directly from the tutorial )
 pub fn print_kernel_memory_table() {
     unsafe {
@@ -178,4 +153,46 @@ pub fn print_kernel_memory_table() {
             head = (head as *mut u8).add((*head).get_size()) as *mut AllocationList;
         }
     }
+}
+
+// Kernel memory needs an allcoator interface we can use. since our memory paging is setup,
+// normally we would do this by creating a special syscall function which initializes a page table
+// in the kernel of the requested size, maps the page table to physical memory
+// and returns the pointer to its head. however there are 2 problems:
+// 1. the page table head is just a virtual abstraction. the pointer we give to rust  will not
+// actually be mapped onto physical memory. we have to somehow get rust to use the translation
+// layer for interacting with this memory
+// 2. we have to somehow tell rust to actually use the virtual memory system we made, i.e. actually
+// do the page translations with offsets and also allocate, deallocate and dereference using
+// the correct addresses.
+// The solution: rust provides a template macro to allow you to define your own allocators.
+// We will need to use these templates along with our paging system to define our allocator
+
+// Note that for now we are only allocating some heap memory for the kernel. but eventually
+// we may need to edit this or use some other method to provide a syscall interface for
+// processes to ask for heap allocated memory (i.e. to malloc)
+use core::alloc::{GlobalAlloc, Layout};
+struct KernelAllocator;
+
+unsafe impl GlobalAlloc for KernelAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        kernel_zmalloc(layout.size())
+    }
+    unsafe fn dealloc(&self, pointer: *mut u8, _layout: Layout) {
+        kernel_free(pointer);
+    }
+}
+
+#[global_allocator]
+static GLOBAL: KernelAllocator = KernelAllocator;
+
+#[alloc_error_handler]
+// undefined to call alloc on a null_ptr, since we are doing this in the kernel the entire kernel
+// should panic (would crash anyways) so we can more easily find where this happens
+pub fn kernel_alloc_error(layout: Layout) -> ! {
+    panic!(
+        "[ERROR] Kernel failed to allocate {} bytes with {} byte-alignment.",
+        layout.size(),
+        layout.align()
+    )
 }

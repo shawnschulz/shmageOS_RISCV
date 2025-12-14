@@ -1,7 +1,6 @@
 //! RISCV page grained memory virtualization for shmageOS
 //! None too different from unix local memory virtualization.
-//! Haven't really decided on whether or not to include partitioned global
-//! address space stuff here, or keep that as an abstraction over this
+//! Haven't really decided on whether or not to include partitioned global address space stuff here, or keep that as an abstraction over this
 use core::{mem::size_of, ptr::null_mut};
 use crate::{println, print};
 
@@ -288,6 +287,16 @@ pub fn map(root: &mut PageTable, virtual_address: usize, physical_address: usize
     moving_pte_reference.set_entry(entry);
 }
 
+// Map a range of addresses to the given page table
+pub fn map_range(root_pointer: &mut PageTable, start_address: usize, end_address: usize, bits: i64) {
+    let mut memory_address = start_address & !(PAGE_SIZE - 1);
+    let num_pages = (align_value(end_address, 12) - memory_address) / PAGE_SIZE;
+    for _ in 0..num_pages {
+        map(root_pointer, memory_address, memory_address, bits, 0);
+        memory_address += 1 << 12;
+    }
+}
+
 // Unmap all memory from the root of the pagetable
 pub fn unmap(root: &mut PageTable) {
     // Page table starts at level 2
@@ -420,7 +429,7 @@ pub fn print_page_allocations() {
 		println!(" ______________________________________");
         print!("|");
 		println!(
-		         "page allocation table                 |\n|meta: {:p} -> {:p}        |\n|physical mem: \
+		         "page allocation table                 |\r\n|meta: {:p} -> {:p}        |\r\n|physical mem: \
 		          0x{:x} -> 0x{:x}|",
 		         beg, end, alloc_beg, alloc_end
 		);

@@ -48,33 +48,72 @@ impl Uart {
         //}
     }
     pub fn get(&mut self) -> Option<u8> {
-        let pointer = self.base_address as *mut u8;
+        let rhr_offset: u8 = 5;
+        // According to docs DLAB bit in LCR should be 0
+        // possible FIFO mode is enabled, we can actually check this in uboot if necessary
+        let pointer = self.base_address as u8;
+        let lsr_offset = 0x00000014 as u8;
+        let lsr_pointer = (pointer + lsr_offset) as u64;
+        let rhr_pointer = (pointer + rhr_offset) as u64;
+        let value: u8;
         unsafe {
-            if pointer.add(5).read_volatile() & 1 == 0 {
+            // this isn't irght, look at the device documentation and make sure
+            // you are polling the right bit for the RHR fifo
+            core::arch::asm!(
+                "1:",
+                "li t1, 0xD4017014",
+                "lb  t2, 0(t1)",
+                "andi t2, t2, 0x20",  // check DLAB Empty bit
+                "beqz t2, 1b",
+                "li t0, 0xD4017000", // UART_RHR
+                "lb  {out}, 0(t0)",
+                out = out(reg) value,
+                // rhr_address = in(reg) rhr_pointer,
+                // lsr_address = in(reg) lsr_pointer,
+                options(nostack, preserves_flags)
+            );
+
+            if value != 0 {
+                Some(value)
+            } else {
                 None
             }
-            else {
-                Some(pointer.add(0).read_volatile())
-            }
+
+            //if pointer.add(5).read_volatile() & 1 == 0 {
+            //    None
+            //}
+            //else {
+            //    Some(pointer.add(0).read_volatile())
+            //}
         }
     }
+    // We could actaully make this return an Option instead and trap into
+    // error handling if we get a bad put. but in that case we can't really
+    // see anything rn
     pub fn put(&mut self, value: u8) {
-        //let pointer = self.base_address as *mut u8;
-        unsafe { 
-         //   pointer.add(0).write_volatile(value);
+        let pointer = self.base_address as u8;
+        let lsr_offset = 0x00000014 as u8;
+        let lsr_pointer = (pointer + lsr_offset) as u64;
+        let thr_pointer = self.base_address as u64;
+        unsafe {
+//            while lsr_pointer.add(0).read_volatile() & 1 != 0 {
+//            }
+//            pointer.add(0).write_volatile(value);
          //   Let's just inline the assembly for these, it's not hard and
          //   this shit is flicking me. can still use the baseaddress tho
-          core::arch::asm!(
-            "1:",
-            "li  t1, 0xD4017014", // UART_LSR
-            "lb  t2, 0(t1)",
-            "andi t2, t2, 0x20",  // THR Empty bit
-            "beqz t2, 1b",
-            "li  t0, 0xD4017000", // UART_THR
-            "sb  {v}, 0(t0)",
-            v = in(reg) value,
-            options(nostack, preserves_flags)
-        );
+         //   this is erroring
+            core::arch::asm!(
+                "1:",
+                "li t1, 0xD4017014",
+                "lb  t2, 0(t1)",
+                "andi t2, t2, 0x20",  // THR Empty bit
+                "beqz t2, 1b",
+                "li t0, 0xD4017000", // UART_THR
+                "sb  {v}, 0(t0)",
+                v = in(reg) value,
+                // thr_address = in(reg) thr_pointer,
+                options(nostack, preserves_flags)
+            );
         }
     }
 }

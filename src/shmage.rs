@@ -2,36 +2,68 @@ use core::arch::asm;
 
 // This is our basic shell
 pub fn shfetch() {
-    print!("testtttting");
-    print!(", is this thing on");
     println!("Welcome to shmageOS!");
-    println!("           _              user@wip");
+    println!("         _                user@wip");
     println!("        ___               ------------------------------");
     println!("      l..l.l              OS: shmageOS 0.0.1 RISCV");
-    println!("    __________            Host: QEMU");
+    println!("    __________            Host: Orangepi RV2");
     println!("  ______________          Kernel: 0.0.1");
     println!("_____________________     Cluster Connections:");
     println!("ooooooooooooooooooooooo   Network:");
-    println!("   |  =    =  |           CPU:");
+    println!("   |  =    =  |           CPU: KY_X1 8 cores @ 1.6 GHZ");
     println!("   j  O    O  j           GPU:");
     println!(r"   \          /           Mem:");
     println!("                          ------------------------------");
-    println!("");
     println!("_______________________");
     println!("\"Writing a computer program is simple,");
     println!("but writing a simple computer program");
     println!("is the hardest thing there is!\" - Shawn");
     println!("_______________________");
-    println!("");
 }
 
 use crate::page;
 use crate::malloc;
 
+// Remember the page tables are just an abstraction, pages need to be
+// mapped properly onto real physical memory locations. This function but
+// initializes a page table for the kernel to use as heap virtual memory by
+// peforming that mapping and also makes pages for the stack, heap BSS
+// DATA etc. Some of these will only be read from but its important all of them
+// are known to the kernel's virtual memory allocation system so that we don't do something
+// dumb like allocate parts of the BSS or kernel memory to a process
+pub fn initialize_kernel_memory() {
+    page::init();
+    malloc::init();
+    println!("[INFO] Printing page allocations before initial allocations:");
+    page::print_page_allocations();
+    malloc::print_kernel_memory_table();
+    println!("[INFO] Printing page allocations after initial allocations:");
+    // use the page::map_range function to map all necessary tables for kernel
+    let kernel_root = malloc::get_page_table();
+    let root_u = kernel_root as usize;
+    let mut root = unsafe { kenrel_root.as_mut().unwrap() };
+    let kernel_heap_head = malloc::get_head() as usize;
+    let total_pages = malloc::get_number_allocations();
+    unsafe {
+        println!("TEXT:   0x{:x} -> 0x{:x}", TEXT_START, TEXT_END);
+        println!("RODATA: 0x{:x} -> 0x{:x}", RODATA_START, RODATA_END);
+        println!("DATA:   0x{:x} -> 0x{:x}", DATA_START, DATA_END);
+        println!("BSS:    0x{:x} -> 0x{:x}", BSS_START, BSS_END);
+        println!("KERNEL STACK:  0x{:x} -> 0x{:x}", KERNEL_STACK_START, KERNEL_STACK_END);
+        println!("KERNEL HEAP:   0x{:x} -> 0x{:x}", kernel_heap_head, kernel_heap_head + total_pages * 4096);
+    }
+    // this should map the kernel's heap
+    page::map_range(&mut root, kernel_heap_head, kernel_heap_head + total_pages * 4096, page::PageTableEntryBits::ReadWrite.val());
+    // before mapping all the other stuff let's check this worked. we could map the mmio allocated memory now, but let's wait until
+    // we set up a filesystem so we can use a .dtb file to this and have a better interface for block drivers too
+}
+
 pub fn ptable() {
+    page::init();
     page::print_page_allocations();
 }
 pub fn pkmemtable() {
+    initialize_kernel_memory();
     malloc::print_kernel_memory_table();
 }
 pub fn clear() {
@@ -105,6 +137,11 @@ pub fn basic_command_process (input_array: &[char; 8]) {
 }
 
 
+unsafe extern "C" {
+    static HEAP_START: usize;
+    static HEAP_SIZE: usize;
+}
+
 use crate::println;
 use crate::uart::Uart;
 use crate::print;
@@ -115,6 +152,12 @@ pub fn shmage_init() -> ! {
     let mut uart_instance = Uart::new(0xD4017000);
     // uart_instance.init();
     shfetch();
+    page::init();
+    unsafe {
+    println!("heap start = {:#x}", HEAP_START);
+    println!("heap size = {:#x}", HEAP_SIZE);
+    }
+    //malloc::init();
     let mut input_array: [char; 8] = [' ',' ',' ',' ',' ',' ',' ',' '];
     // single character input process loop
     let mut input_i: usize = 0;
@@ -128,10 +171,10 @@ pub fn shmage_init() -> ! {
         // Get the character
         if let Some(c) = uart_instance.get() {
             match c {
-                8 => {
+                0x08b => {
                     // 8 is the backspace character, need to replace the
                     // previous character with a ' '
-                    print!("{}{}{}", 8 as char, ' ', 8 as char);
+                    print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
                     if input_i > 0 {
                         input_i -= 1;
                         input_array[input_i] = ' ';
@@ -183,10 +226,10 @@ pub fn shmage_init() -> ! {
             }
             // Try to sleep the processor, i think this would work but
             // qemu uses a whole core
-            for i in 0..1000{
-                unsafe {
-                    asm!("ADDI x0, x0, 0")
-                }
-            }
+       //     for i in 0..1000{
+       //         unsafe {
+       //             asm!("ADDI x0, x0, 0")
+       //         }
+       //     }
         }
     }
