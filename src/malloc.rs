@@ -10,6 +10,33 @@ use crate::print;
 enum AllocationFlags {
     Taken = 0b1 << 63
 }
+
+impl AllocationFlags {
+    pub fn value(self) -> usize {
+       self as usize
+    }
+}
+
+struct AllocationList {
+    pub flags_size: usize
+}
+
+impl AllocationList {
+    pub fn is_taken(&self) -> bool {
+        self.flags_size & AllocationFlags::Taken.value() != 0b0
+    }
+    pub fn set_taken(&mut self) {
+        self.flags_size |= AllocationFlags::Taken.value();
+    }
+    pub fn set_free(&mut self) {
+        self.flags_size = !AllocationFlags::Taken.value() & self.flags_size;
+    }
+    // ngl this makes no sense to me
+    pub fn set_size(&mut self, size: usize) {
+        let taken_check = self.is_taken();
+        self.flags_size = size & !AllocationFlags::Taken.value();
+        if taken_check {
+            self.flags_size = self.flags_size | AllocationFlags::Taken.value();
         }
     }
     pub fn get_size(&self) -> usize {
@@ -186,9 +213,9 @@ unsafe impl GlobalAlloc for KernelAllocator {
 #[global_allocator]
 static GLOBAL: KernelAllocator = KernelAllocator;
 
-#[alloc_error_handler]
 // undefined to call alloc on a null_ptr, since we are doing this in the kernel the entire kernel
 // should panic (would crash anyways) so we can more easily find where this happens
+// okay actually we have to setup traps and errors properly to do this, we will implement this later
 pub fn kernel_alloc_error(layout: Layout) -> ! {
     panic!(
         "[ERROR] Kernel failed to allocate {} bytes with {} byte-alignment.",

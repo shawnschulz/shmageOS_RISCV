@@ -217,6 +217,9 @@ impl PageTableEntryBits {
     pub fn as_i64(self) -> i64 {
         self as i64
     }
+    pub fn val(self) -> u8 {
+        self as u8
+    }
 }
 
 // does this need to be a struct? probably not but we get some

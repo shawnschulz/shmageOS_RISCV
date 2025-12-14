@@ -118,6 +118,7 @@ pub extern "C" fn kernel_main() {
 // Really would like this to be run in a test harness, but its been a nightmare to get the custom unit testing framework
 // to work and i want to at least have some test coverage now
 pub fn test_pages() {
+    page::init();
     println!("running test test_pages:");
     page::print_page_allocations();
     assert!(1 == 1);

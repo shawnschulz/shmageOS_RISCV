@@ -1,5 +1,18 @@
 use core::arch::asm;
 
+unsafe extern "C" {
+    static TEXT_START: usize;
+    static TEXT_END: usize;
+    static RODATA_START: usize;
+    static RODATA_END: usize;
+    static DATA_START: usize;
+    static DATA_END: usize;
+    static BSS_START: usize;
+    static BSS_END: usize;
+    static KERNEL_STACK_START: usize;
+    static KERNEL_STACK_END: usize;
+}
+
 // This is our basic shell
 pub fn shfetch() {
     println!("Welcome to shmageOS!");
@@ -35,13 +48,13 @@ pub fn initialize_kernel_memory() {
     page::init();
     malloc::init();
     println!("[INFO] Printing page allocations before initial allocations:");
-    page::print_page_allocations();
-    malloc::print_kernel_memory_table();
+    // page::print_page_allocations();
+    // malloc::print_kernel_memory_table();
     println!("[INFO] Printing page allocations after initial allocations:");
     // use the page::map_range function to map all necessary tables for kernel
     let kernel_root = malloc::get_page_table();
     let root_u = kernel_root as usize;
-    let mut root = unsafe { kenrel_root.as_mut().unwrap() };
+    let mut root = unsafe { kernel_root.as_mut().unwrap() };
     let kernel_heap_head = malloc::get_head() as usize;
     let total_pages = malloc::get_number_allocations();
     unsafe {
@@ -53,18 +66,19 @@ pub fn initialize_kernel_memory() {
         println!("KERNEL HEAP:   0x{:x} -> 0x{:x}", kernel_heap_head, kernel_heap_head + total_pages * 4096);
     }
     // this should map the kernel's heap
-    page::map_range(&mut root, kernel_heap_head, kernel_heap_head + total_pages * 4096, page::PageTableEntryBits::ReadWrite.val());
+    page::map_range(&mut root, kernel_heap_head, kernel_heap_head + total_pages * 4096, page::PageTableEntryBits::ReadWrite.as_i64());
     // before mapping all the other stuff let's check this worked. we could map the mmio allocated memory now, but let's wait until
     // we set up a filesystem so we can use a .dtb file to this and have a better interface for block drivers too
 }
 
 pub fn ptable() {
-    page::init();
+    // page::init();
     page::print_page_allocations();
+    malloc::print_kernel_memory_table();
 }
 pub fn pkmemtable() {
     initialize_kernel_memory();
-    malloc::print_kernel_memory_table();
+    // malloc::print_kernel_memory_table();
 }
 pub fn clear() {
     for i in 0..200 {
@@ -152,11 +166,11 @@ pub fn shmage_init() -> ! {
     let mut uart_instance = Uart::new(0xD4017000);
     // uart_instance.init();
     shfetch();
-    page::init();
-    unsafe {
-    println!("heap start = {:#x}", HEAP_START);
-    println!("heap size = {:#x}", HEAP_SIZE);
-    }
+   // page::init();
+   // unsafe {
+   // println!("heap start = {:#x}", HEAP_START);
+   // println!("heap size = {:#x}", HEAP_SIZE);
+   // }
     //malloc::init();
     let mut input_array: [char; 8] = [' ',' ',' ',' ',' ',' ',' ',' '];
     // single character input process loop
