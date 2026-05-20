@@ -13,6 +13,37 @@ unsafe extern "C" {
     static KERNEL_STACK_END: usize;
 }
 
+struct shellTask {
+    // weights whether a task should get some given scheduled time on the CPU
+    pub tickets: usize,
+    // unsafely points to some function pointer. 
+    pub local_code_pointer: usize,
+    // unsafely points to some region in the filesystem
+    pub local_fs_pointer: usize,
+    // unsafely points to some region in memory
+    pub local_mem_pointer: usize,
+    // unsafely points to some region in memory that represents a remote memory region
+    pub remote_mem_pointer: usize,
+    // unsafely points to some region in memory that represents code used to facillitate
+    // remote execution of the remote memory pointer
+    pub remote_code_pointer: usize,
+    // represents the address of some remote fs storage retiong unsafely
+    pub remote_fs_pointer: usize,
+    // responsibility of the kernel to ensure local and remote pids have proper auth
+    pub pid: usize,
+    pub remote_pid: usize,
+    pub auth_level: usize,
+    pub mem_requested: usize,
+    pub namespace: usize,
+}
+
+impl shellTask {
+    pub fn init_memory(&self) {
+    }
+    pub fn kill_task(&self) {
+    }
+}
+
 // This is our basic shell
 pub fn shfetch() {
     println!("Welcome to shmageOS!");
@@ -36,6 +67,7 @@ pub fn shfetch() {
 
 use crate::page;
 use crate::malloc;
+extern crate alloc;
 
 // Remember the page tables are just an abstraction, pages need to be
 // mapped properly onto real physical memory locations. This function but
@@ -47,11 +79,6 @@ use crate::malloc;
 pub fn initialize_kernel_memory() {
     page::init();
     malloc::init();
-    println!("[INFO] Printing page allocations before initial allocations:");
-    // page::print_page_allocations();
-    // malloc::print_kernel_memory_table();
-    println!("[INFO] Printing page allocations after initial allocations:");
-    // use the page::map_range function to map all necessary tables for kernel
     let kernel_root = malloc::get_page_table();
     let root_u = kernel_root as usize;
     let mut root = unsafe { kernel_root.as_mut().unwrap() };
@@ -69,6 +96,14 @@ pub fn initialize_kernel_memory() {
     page::map_range(&mut root, kernel_heap_head, kernel_heap_head + total_pages * 4096, page::PageTableEntryBits::ReadWrite.as_i64());
     // before mapping all the other stuff let's check this worked. we could map the mmio allocated memory now, but let's wait until
     // we set up a filesystem so we can use a .dtb file to this and have a better interface for block drivers too
+    println!("Trying to print a test_vector:");
+    let mut test_vector: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
+    test_vector.push(1);
+    test_vector.push(2);
+    test_vector.push(3);
+    // YESSS WE HAVE HEAP ALLOCATED MEMORY!!!!
+    println!("Vector heap allocated data: {:?}", test_vector);
+    // I think we should stack allocate the list of processes here
 }
 
 pub fn ptable() {
@@ -160,10 +195,16 @@ use crate::println;
 use crate::uart::Uart;
 use crate::print;
 
-// Initializes the process loop and uses arena allocaiton to allocate
-// a heap
+// Basically this is the shmage kernel shell. it keeps track of the tasks
+// in a struct and performs other tasks. There is no syscall interface yet,
+// so this code basically just lets you run tasks on the CPU in supervisor mode
+// with basic scheduling
 pub fn shmage_init() -> ! {
     let mut uart_instance = Uart::new(0xD4017000);
+    initialize_kernel_memory();
+    let mut tasks: alloc::vec::Vec<shellTask> = alloc::vec::Vec::new();
+    // Add the actual shell loop as the 0th process
+     
     // uart_instance.init();
     shfetch();
    // page::init();
@@ -177,69 +218,73 @@ pub fn shmage_init() -> ! {
     let mut input_i: usize = 0;
     // prob eventually want to represent shell state in an enum
     let mut prompt_active: bool = true;
+    let mut get_c: Option<u8>;
     loop {
-        if prompt_active {
+        if
             print!("t(-_-) — ˎˊ˗");
             prompt_active = false;
         }
-        // Get the character
-        if let Some(c) = uart_instance.get() {
-            match c {
-                0x08b => {
-                    // 8 is the backspace character, need to replace the
-                    // previous character with a ' '
-                    print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
-                    if input_i > 0 {
-                        input_i -= 1;
-                        input_array[input_i] = ' ';
-                    }
-                },
-                10 | 13 => {
-                    // carriage returns
-                    println!();
-                    basic_command_process(&input_array);
-                    input_array = [' ',' ',' ',' ',' ',' ',' ',' '];
-                    input_i = 0;
-                    prompt_active = true;
-                },
-                0x1b => {
-                    //ANSI escape sequences
-                    if let Some(next_byte) = uart_instance.get() {
-                        if next_byte == 91 {
-                            if let Some(b) = uart_instance.get() {
-                                match b as char {
-                                        'A' => {
-                                            println!("up arrow press");
-                                        },
-                                        'B' => {
-                                            println!("down arrow press");
-                                        },
-                                        'C' => {
-                                            println!("right arrow press");
-                                        },
-                                        'D' => {
-                                            println!("left arrow press");
-                                        },
-                                        _ => {
+        get_c = uart_instance.get();
+        match get_c.as_mut() {
+            None => {},
+            Some(c) => {
+                match c {
+                    0x08b => {
+                        // 8 is the backspace character, need to replace the
+                        // previous character with a ' '
+                        print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
+                        if input_i > 0 {
+                            input_i -= 1;
+                            input_array[input_i] = ' ';
+                        }
+                    },
+                    10 | 13 => {
+                        // carriage returns
+                        println!();
+                        basic_command_process(&input_array);
+                        input_array = [' ',' ',' ',' ',' ',' ',' ',' '];
+                        input_i = 0;
+                        prompt_active = true;
+                    },
+                    0x1b => {
+                        //ANSI escape sequences
+                        if let Some(next_byte) = uart_instance.get() {
+                            if next_byte == 91 {
+                                if let Some(b) = uart_instance.get() {
+                                    match b as char {
+                                            'A' => {
+                                                println!("up arrow press");
+                                            },
+                                            'B' => {
+                                                println!("down arrow press");
+                                            },
+                                            'C' => {
+                                                println!("right arrow press");
+                                            },
+                                            'D' => {
+                                                println!("left arrow press");
+                                            },
+                                            _ => {
 
-                                            println!("idk what happened");
+                                                println!("idk what happened");
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    _ => {
-                        print!("{}", c as char);
-                        if input_i < 7 {
-                            input_array[input_i] = c as char;
-                            input_i += 1;
-                        }
-                },
+                        _ => {
+                            print!("{}", *c as char);
+                            if input_i < 7 {
+                                input_array[input_i] = *c as char;
+                                input_i += 1;
+                            }
+                    },
                 }
             }
-            // Try to sleep the processor, i think this would work but
-            // qemu uses a whole core
+        }
+        // We want to sleep but this no work, i think we should implement some interrupts first
+        // and use that
        //     for i in 0..1000{
        //         unsafe {
        //             asm!("ADDI x0, x0, 0")
@@ -247,3 +292,84 @@ pub fn shmage_init() -> ! {
        //     }
         }
     }
+
+pub fn shmage_shell () {
+    let mut input_array: alloc::String = alloc::String::String::new();
+    // single character input process loop
+    let mut input_i: usize = 0;
+    // prob eventually want to represent shell state in an enum
+    let mut prompt_active: bool = true;
+    let mut get_c: Option<u8>;
+    loop {
+        if
+            print!("t(-_-) — ˎˊ˗");
+            prompt_active = false;
+        }
+        get_c = uart_instance.get();
+        match get_c.as_mut() {
+            None => {},
+            Some(c) => {
+                match c {
+                    0x08b => {
+                        // 8 is the backspace character, need to replace the
+                        // previous character with a ' '
+                        print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
+                        if input_i > 0 {
+                            input_i -= 1;
+                            input_array[input_i] = ' ';
+                        }
+                    },
+                    10 | 13 => {
+                        // carriage returns
+                        println!();
+                        basic_command_process(&input_array);
+                        input_array.clear();
+                        input_i = 0;
+                        prompt_active = true;
+                    },
+                    0x1b => {
+                        //ANSI escape sequences
+                        if let Some(next_byte) = uart_instance.get() {
+                            if next_byte == 91 {
+                                if let Some(b) = uart_instance.get() {
+                                    match b as char {
+                                            'A' => {
+                                                println!("up arrow press");
+                                            },
+                                            'B' => {
+                                                println!("down arrow press");
+                                            },
+                                            'C' => {
+                                                println!("right arrow press");
+                                            },
+                                            'D' => {
+                                                println!("left arrow press");
+                                            },
+                                            _ => {
+
+                                                println!("idk what happened");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        _ => {
+                            print!("{}", *c as char);
+                            if input_i < 7 {
+                                input_array[input_i] = *c as char;
+                                input_i += 1;
+                            }
+                    },
+                }
+            }
+        }
+        // We want to sleep but this no work, i think we should implement some interrupts first
+        // and use that
+       //     for i in 0..1000{
+       //         unsafe {
+       //             asm!("ADDI x0, x0, 0")
+       //         }
+       //     }
+        }
+}
