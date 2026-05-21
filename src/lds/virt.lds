@@ -52,7 +52,7 @@ telling the linker script here that we have one pool of RAM.
 /* Note the 0x80000000 address is protected on orangepi, editing here*/
 MEMORY
 {
-  ram  (wxa) : ORIGIN = 0x11000000, LENGTH = 64M
+  ram  (wxa) : ORIGIN = 0x80000000, LENGTH = 64M
 }
 
 /*
@@ -89,7 +89,7 @@ global uninitialized variables go into bss.
 */
 SECTIONS
 {
-  . = 0x11000000;
+  . = 0x80000000;
   /*
     The first part of our RAM layout will be the text section.
 	Since our CPU instructions are here, and our memory starts at
@@ -210,8 +210,6 @@ SECTIONS
     *(.sbss .sbss.*) *(.bss .bss.*)
     PROVIDE(_bss_end = .);
   } >ram AT>ram :bss
-
-    PROVIDE(_uart_base_address = 0xD4017000);
 
   /*
      The following will be helpful when we allocate the kernel stack (_stack) and

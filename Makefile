@@ -26,13 +26,14 @@ CPUS=4
 MEM=128M
 DRIVE=hdd.dsk
 OUT_BIN=shmageOS
+HARDWARE_TARGET=qemu
 
 # The problem: i think -lsos is supposed to link to some static libirary file with the symbol name for
 # kernel_main, but idk this isn't in there
 # do we even need the hdd.dsk?
 # -drive if=none,format=raw,file=$(DRIVE),id=foo
 all:
-	cargo build 
+	HARDWARE_TARGET=$(HARDWARE_TARGET) cargo build 
 	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
 	riscv64-unknown-elf-objcopy -O binary os.elf kernel.bin
 run: all

@@ -39,7 +39,7 @@ KERNEL_STACK_START: .dword _stack_start
 KERNEL_STACK_END: .dword _stack_end
 
 .global UART_BASE_ADDRESS
-UART_BASE_ADDRESS: .quad 0x10000000
+UART_BASE_ADDRESS: .quad {UART_BASE_ADDRESS}
 
 .section .data
 .global KERNEL_TABLE

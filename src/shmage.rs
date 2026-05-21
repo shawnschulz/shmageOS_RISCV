@@ -200,7 +200,6 @@ use crate::print;
 pub fn shmage_init() -> ! {
     unsafe {
         let mut uart_instance = Uart::new(UART_BASE_ADDRESS);
-    }
     // uart_instance.init();
     shfetch();
    // page::init();
@@ -284,3 +283,4 @@ pub fn shmage_init() -> ! {
        //     }
         }
     }
+}
