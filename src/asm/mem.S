@@ -41,3 +41,4 @@ KERNEL_STACK_END: .dword _stack_end
 .section .data
 .global KERNEL_TABLE
 KERNEL_TABLE: .dword 0
+UART_BASE_ADDRESS: .quad 0xD4017000

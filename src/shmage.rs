@@ -1,4 +1,5 @@
 use core::arch::asm;
+use crate::UART_BASE_ADDRESS;
 
 unsafe extern "C" {
     static TEXT_START: usize;
@@ -194,17 +195,12 @@ unsafe extern "C" {
 use crate::println;
 use crate::uart::Uart;
 use crate::print;
-
-// Basically this is the shmage kernel shell. it keeps track of the tasks
-// in a struct and performs other tasks. There is no syscall interface yet,
-// so this code basically just lets you run tasks on the CPU in supervisor mode
-// with basic scheduling
+// Initializes the process loop and uses arena allocaiton to allocate
+// a heap
 pub fn shmage_init() -> ! {
-    let mut uart_instance = Uart::new(0xD4017000);
-    initialize_kernel_memory();
-    let mut tasks: alloc::vec::Vec<shellTask> = alloc::vec::Vec::new();
-    // Add the actual shell loop as the 0th process
-     
+    unsafe {
+        let mut uart_instance = Uart::new(UART_BASE_ADDRESS);
+    }
     // uart_instance.init();
     shfetch();
    // page::init();
@@ -218,73 +214,69 @@ pub fn shmage_init() -> ! {
     let mut input_i: usize = 0;
     // prob eventually want to represent shell state in an enum
     let mut prompt_active: bool = true;
-    let mut get_c: Option<u8>;
     loop {
-        if
+        if prompt_active {
             print!("t(-_-) — ˎˊ˗");
             prompt_active = false;
         }
-        get_c = uart_instance.get();
-        match get_c.as_mut() {
-            None => {},
-            Some(c) => {
-                match c {
-                    0x08b => {
-                        // 8 is the backspace character, need to replace the
-                        // previous character with a ' '
-                        print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
-                        if input_i > 0 {
-                            input_i -= 1;
-                            input_array[input_i] = ' ';
-                        }
-                    },
-                    10 | 13 => {
-                        // carriage returns
-                        println!();
-                        basic_command_process(&input_array);
-                        input_array = [' ',' ',' ',' ',' ',' ',' ',' '];
-                        input_i = 0;
-                        prompt_active = true;
-                    },
-                    0x1b => {
-                        //ANSI escape sequences
-                        if let Some(next_byte) = uart_instance.get() {
-                            if next_byte == 91 {
-                                if let Some(b) = uart_instance.get() {
-                                    match b as char {
-                                            'A' => {
-                                                println!("up arrow press");
-                                            },
-                                            'B' => {
-                                                println!("down arrow press");
-                                            },
-                                            'C' => {
-                                                println!("right arrow press");
-                                            },
-                                            'D' => {
-                                                println!("left arrow press");
-                                            },
-                                            _ => {
+        // Get the character
+        if let Some(c) = uart_instance.get() {
+            match c {
+                0x08b => {
+                    // 8 is the backspace character, need to replace the
+                    // previous character with a ' '
+                    print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
+                    if input_i > 0 {
+                        input_i -= 1;
+                        input_array[input_i] = ' ';
+                    }
+                },
+                10 | 13 => {
+                    // carriage returns
+                    println!();
+                    basic_command_process(&input_array);
+                    input_array = [' ',' ',' ',' ',' ',' ',' ',' '];
+                    input_i = 0;
+                    prompt_active = true;
+                },
+                0x1b => {
+                    //ANSI escape sequences
+                    if let Some(next_byte) = uart_instance.get() {
+                        if next_byte == 91 {
+                            if let Some(b) = uart_instance.get() {
+                                match b as char {
+                                        'A' => {
+                                            println!("up arrow press");
+                                        },
+                                        'B' => {
+                                            println!("down arrow press");
+                                        },
+                                        'C' => {
+                                            println!("right arrow press");
+                                        },
+                                        'D' => {
+                                            println!("left arrow press");
+                                        },
+                                        _ => {
 
-                                                println!("idk what happened");
-                                            }
+                                            println!("idk what happened");
                                         }
                                     }
                                 }
                             }
                         }
-                        _ => {
-                            print!("{}", *c as char);
-                            if input_i < 7 {
-                                input_array[input_i] = *c as char;
-                                input_i += 1;
-                            }
-                    },
+                    }
+                    _ => {
+                        print!("{}", c as char);
+                        if input_i < 7 {
+                            input_array[input_i] = c as char;
+                            input_i += 1;
+                        }
+                },
                 }
             }
-        }
-        // We want to sleep but this no work, i think we should implement some interrupts first
-        // and use that
+            // Try to sleep the processor, i think this would work but
+            // qemu uses a whole core
        //     for i in 0..1000{
        //         unsafe {
        //             asm!("ADDI x0, x0, 0")
@@ -292,84 +284,3 @@ pub fn shmage_init() -> ! {
        //     }
         }
     }
-
-pub fn shmage_shell () {
-    let mut input_array: alloc::String = alloc::String::String::new();
-    // single character input process loop
-    let mut input_i: usize = 0;
-    // prob eventually want to represent shell state in an enum
-    let mut prompt_active: bool = true;
-    let mut get_c: Option<u8>;
-    loop {
-        if
-            print!("t(-_-) — ˎˊ˗");
-            prompt_active = false;
-        }
-        get_c = uart_instance.get();
-        match get_c.as_mut() {
-            None => {},
-            Some(c) => {
-                match c {
-                    0x08b => {
-                        // 8 is the backspace character, need to replace the
-                        // previous character with a ' '
-                        print!("{}{}{}", 0x08b as char, ' ', 0x08b as char);
-                        if input_i > 0 {
-                            input_i -= 1;
-                            input_array[input_i] = ' ';
-                        }
-                    },
-                    10 | 13 => {
-                        // carriage returns
-                        println!();
-                        basic_command_process(&input_array);
-                        input_array.clear();
-                        input_i = 0;
-                        prompt_active = true;
-                    },
-                    0x1b => {
-                        //ANSI escape sequences
-                        if let Some(next_byte) = uart_instance.get() {
-                            if next_byte == 91 {
-                                if let Some(b) = uart_instance.get() {
-                                    match b as char {
-                                            'A' => {
-                                                println!("up arrow press");
-                                            },
-                                            'B' => {
-                                                println!("down arrow press");
-                                            },
-                                            'C' => {
-                                                println!("right arrow press");
-                                            },
-                                            'D' => {
-                                                println!("left arrow press");
-                                            },
-                                            _ => {
-
-                                                println!("idk what happened");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        _ => {
-                            print!("{}", *c as char);
-                            if input_i < 7 {
-                                input_array[input_i] = *c as char;
-                                input_i += 1;
-                            }
-                    },
-                }
-            }
-        }
-        // We want to sleep but this no work, i think we should implement some interrupts first
-        // and use that
-       //     for i in 0..1000{
-       //         unsafe {
-       //             asm!("ADDI x0, x0, 0")
-       //         }
-       //     }
-        }
-}

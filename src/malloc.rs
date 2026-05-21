@@ -1,6 +1,7 @@
 // Provides the memory for the kernel, for now also exposes a global allocator for heap memory
 
 use crate::page::{align_value, zalloc, PageTable, PAGE_SIZE};
+use crate::UART_BASE_ADDRESS;
 use core::{mem::size_of, ptr::null_mut};
 use crate::println;
 use crate::print;

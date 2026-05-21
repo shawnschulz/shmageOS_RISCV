@@ -2,7 +2,7 @@
 //! None too different from unix local memory virtualization.
 //! Haven't really decided on whether or not to include partitioned global address space stuff here, or keep that as an abstraction over this
 use core::{mem::size_of, ptr::null_mut};
-use crate::{println, print};
+use crate::{println, print, UART_BASE_ADDRESS};
 
 unsafe extern "C" {
     static HEAP_START: usize;

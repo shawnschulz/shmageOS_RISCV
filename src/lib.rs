@@ -8,13 +8,19 @@ pub mod malloc;
 pub mod trap;
 // pub mod test;
 
+unsafe extern "C" {
+    static UART_BASE_ADDRESS: usize;
+}
+
 #[macro_export]
 macro_rules! print {
     ($($args:tt)+) => ({
         use core::fmt::Write;
         // it's macro magic, but basically the stuff in a print will
         // get put into a write! call in the Uart's write method
-        let _ = write!(crate::uart::Uart::new(0xD4017000), $($args)+);
+        unsafe {
+            let _ = write!(crate::uart::Uart::new(UART_BASE_ADDRESS), $($args)+);
+        }
     });
 }
 #[macro_export]

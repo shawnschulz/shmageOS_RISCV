@@ -41,7 +41,7 @@ Side note: There might be other boot ROMs at different addresses, but
 their job is to get to this point.
 
 Finally LENGTH = 128M tells the linker that we have 128 megabyte of RAM.
-The linker will double check this to make sure everything can fit.
+The linker will double check this to make sure everything can fit.G
 
 The HiFive Unleashed has a lot more RAM than this, but for the virtual 
 machine, I went with 128M since I think that's enough RAM for now.
@@ -210,6 +210,8 @@ SECTIONS
     *(.sbss .sbss.*) *(.bss .bss.*)
     PROVIDE(_bss_end = .);
   } >ram AT>ram :bss
+
+    PROVIDE(_uart_base_address = 0xD4017000);
 
   /*
      The following will be helpful when we allocate the kernel stack (_stack) and
