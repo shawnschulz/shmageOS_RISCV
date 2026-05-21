@@ -33,14 +33,17 @@ HARDWARE_TARGET=qemu
 # do we even need the hdd.dsk?
 # -drive if=none,format=raw,file=$(DRIVE),id=foo
 all:
-	HARDWARE_TARGET=$(HARDWARE_TARGET) cargo build 
+	HARDWARE_TARGET=qemu cargo build 
 	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
 	riscv64-unknown-elf-objcopy -O binary os.elf kernel.bin
 run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT)
 run_bin: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)  -nographic -serial mon:stdio -bios none -kernel $(OUT_BIN)
-orangepi: all
+orangepi:
+	HARDWARE_TARGET=orangepi cargo build 
+	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
+	riscv64-unknown-elf-objcopy -O binary os.elf kernel.bin
 	mkimage -A riscv -n "Boot Script" -d boot.cmd boot.scr
 	sudo cp os.elf /media/shawn/opi_root/boot/
 	sudo cp kernel.bin /media/shawn/opi_root/boot/

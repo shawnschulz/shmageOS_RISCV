@@ -28,6 +28,10 @@ fn main() {
             .expect("Failed to read uart_orangepi.rs.template");
         fs::write("src/uart.rs", uart_src)
             .expect("Failed to write uart.rs");
+        let boot_src = fs::read_to_string("src/asm/boot_orangepi.S.template")
+            .expect("Failed to read src/asm/boot_orangepi.S.template");
+        fs::write("src/asm/boot.S", boot_src)
+            .expect("Failed to write boot.S");
     } else { // Default to qemu target otherwise
         let linker_output = linker_template.replace("{ORIGIN_ADDRESS}", "0x80000000");
         let mem_output = mem_template.replace("{UART_BASE_ADDRESS}", "0x10000000");
@@ -40,6 +44,10 @@ fn main() {
             .expect("Failed to read uart_orangepi.rs.template");
         fs::write("./src/uart.rs", uart_src)
             .expect("Failed to write uart.rs");
+        let boot_src = fs::read_to_string("src/asm/boot_qemu.S.template")
+            .expect("Failed to read src/asm/boot_qemu.S.template");
+        fs::write("src/asm/boot.S", boot_src)
+            .expect("Failed to write boot.S");
     }
     println!("cargo:warning=Finished building for hardware target");
     
